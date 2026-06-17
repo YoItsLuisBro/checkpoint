@@ -1,6 +1,8 @@
 import { useMemo, useState, type FormEvent } from "react";
 import {
   Archive,
+  ArrowDown,
+  ArrowUp,
   Pencil,
   Plus,
   RotateCcw,
@@ -64,6 +66,7 @@ export default function HabitsPage({
   const archiveHabit = useCheckpointStore((state) => state.archiveHabit);
   const restoreHabit = useCheckpointStore((state) => state.restoreHabit);
   const deleteHabit = useCheckpointStore((state) => state.deleteHabit);
+  const moveHabit = useCheckpointStore((state) => state.moveHabit);
 
   const [form, setForm] = useState<HabitInput>(() => getEmptyForm());
   const [editingHabitId, setEditingHabitId] = useState<string | null>(null);
@@ -475,11 +478,29 @@ export default function HabitsPage({
                           </p>
                         </div>
 
-                        <div className="flex shrink-0 items-center gap-2">
+                        <div className="grid shrink-0 grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => moveHabit(habit.id, "up")}
+                            className="border border-(--cp-border) p-2 text-(--cp-muted)"
+                            aria-label={`Move ${habit.name} up`}
+                          >
+                            <ArrowUp size={16} />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => moveHabit(habit.id, "down")}
+                            className="border border-(--cp-border) p-2 text-(--cp-muted)"
+                            aria-label={`Move ${habit.name} down`}
+                          >
+                            <ArrowDown size={16} />
+                          </button>
+
                           <button
                             type="button"
                             onClick={() => startEditing(habit)}
-                            className="border border-(--cp-border) p-2 text-(--cp-text)"
+                            className="border border-[var(--cp-border)] p-2 text-[var(--cp-text)]"
                             aria-label={`Edit ${habit.name}`}
                           >
                             <Pencil size={16} />
@@ -488,7 +509,7 @@ export default function HabitsPage({
                           <button
                             type="button"
                             onClick={() => handleArchiveHabit(habit)}
-                            className="border border-(--cp-border) p-2 text-(--cp-muted)"
+                            className="border border-[var(--cp-border)] p-2 text-[var(--cp-muted)]"
                             aria-label={`Archive ${habit.name}`}
                           >
                             <Archive size={16} />
@@ -504,47 +525,43 @@ export default function HabitsPage({
         })}
       </section>
 
-      <section className="mt-8 border-b border-[var(--cp-border)] pb-6">
+      <section className="mt-8 border-b border-(--cp-border) pb-6">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-[var(--cp-warn)]">
-            $ archived
-          </h2>
+          <h2 className="text-2xl font-bold text-(--cp-warn)">$ archived</h2>
 
-          <span className="text-[var(--cp-muted)]">
-            [{archivedHabits.length}]
-          </span>
+          <span className="text-(--cp-muted)">[{archivedHabits.length}]</span>
         </div>
 
         {archivedHabits.length === 0 ? (
-          <p className="text-[var(--cp-muted)]">// no archived habits</p>
+          <p className="text-(--cp-muted)">// no archived habits</p>
         ) : (
           <div className="space-y-3">
             {archivedHabits.map((habit) => (
               <article
                 key={habit.id}
-                className="border border-[var(--cp-border)] bg-[var(--cp-panel)] p-3 opacity-80"
+                className="border border-(--cp-border) bg-(--cp-panel) p-3 opacity-80"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="truncate text-xl text-[var(--cp-text)]">
-                      <span className="mr-2 text-[var(--cp-muted)]">
+                    <p className="truncate text-xl text-(--cp-text)">
+                      <span className="mr-2 text-(--cp-muted)">
                         {habit.icon}
                       </span>
                       {habit.name}
                     </p>
 
-                    <p className="mt-1 text-sm text-[var(--cp-muted)]">
+                    <p className="mt-1 text-sm text-(--cp-muted)">
                       mode: {habit.mode}
                       {habit.target ? ` · target: ${habit.target}` : ""}
                       {habit.unit ? ` ${habit.unit}` : ""}
                     </p>
 
-                    <p className="mt-1 text-sm text-[var(--cp-muted)]">
+                    <p className="mt-1 text-sm text-(--cp-muted)">
                       schedule: {getScheduleLabel(habit.schedule)}
                     </p>
 
                     {habit.archivedAt && (
-                      <p className="mt-1 text-sm text-[var(--cp-muted)]">
+                      <p className="mt-1 text-sm text-(--cp-muted)">
                         archived:{" "}
                         {new Date(habit.archivedAt).toLocaleDateString()}
                       </p>
@@ -555,7 +572,7 @@ export default function HabitsPage({
                     <button
                       type="button"
                       onClick={() => handleRestoreHabit(habit)}
-                      className="border border-[var(--cp-border)] p-2 text-[var(--cp-accent)]"
+                      className="border border-(--cp-border) p-2 text-(--cp-accent)"
                       aria-label={`Restore ${habit.name}`}
                     >
                       <RotateCcw size={16} />
@@ -564,7 +581,7 @@ export default function HabitsPage({
                     <button
                       type="button"
                       onClick={() => handleDeleteHabit(habit)}
-                      className="border border-[var(--cp-danger)] p-2 text-[var(--cp-danger)]"
+                      className="border border-(--cp-danger) p-2 text-(--cp-danger)"
                       aria-label={`Delete ${habit.name}`}
                     >
                       <Trash2 size={16} />

@@ -153,6 +153,62 @@ export const useCheckpointStore = create<CheckpointState>()(
         }));
       },
 
+      moveHabit: (habitId: string, direction: "up" | "down") => {
+        set((state) => {
+          const habitToMove = state.habits.find(
+            (habit) => habit.id === habitId,
+          );
+
+          if (!habitToMove || habitToMove.archivedAt) {
+            return state;
+          }
+
+          const routineHabits = state.habits
+            .filter(
+              (habit) =>
+                !habit.archivedAt && habit.category === habitToMove.category,
+            )
+            .sort((a, b) => a.order - b.order);
+
+          const currentIndex = routineHabits.findIndex(
+            (habit) => habit.id === habitId,
+          );
+
+          if (currentIndex === -1) {
+            return state;
+          }
+
+          const targetIndex =
+            direction === "up" ? currentIndex - 1 : currentIndex + 1;
+
+          if (targetIndex < 0 || targetIndex >= routineHabits.length) {
+            return state;
+          }
+
+          const targetHabit = routineHabits[targetIndex];
+
+          return {
+            habits: state.habits.map((habit) => {
+              if (habit.id === habitToMove.id) {
+                return {
+                  ...habit,
+                  order: targetHabit.order,
+                };
+              }
+
+              if (habit.id === targetHabit.id) {
+                return {
+                  ...habit,
+                  order: habitToMove.order,
+                };
+              }
+
+              return habit;
+            }),
+          };
+        });
+      },
+
       updateSettings: (input: SettingsInput) => {
         set(() => ({
           settings: {

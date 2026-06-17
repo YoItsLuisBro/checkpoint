@@ -82,6 +82,7 @@ export type CheckpointState = {
   archiveHabit: (habitId: string) => void;
   restoreHabit: (habitId: string) => void;
   deleteHabit: (habitId: string) => void;
+  moveHabit: (habitId: string, direction: "up" | "down") => void;
 
   updateSettings: (input: SettingsInput) => void;
   resetAppData: () => void;
