@@ -1,15 +1,19 @@
-import { useMemo } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import {
+  addMonths,
   eachDayOfInterval,
   format,
   startOfWeek,
   endOfWeek,
   subDays,
+  subMonths,
 } from "date-fns";
 import { Flame, Shield, Activity, CheckCircle2 } from "lucide-react";
 
 import TerminalShell from "../components/layout/TerminalShell";
 import TopNav, { type AppView } from "../components/layout/TopNav";
+import MonthlyHeatmap from "../components/stats/MonthlyHeatMap";
+
 import { useCheckpointStore } from "../store/useCheckpointStore";
 import {
   getDailyGoalStreak,
@@ -28,12 +32,16 @@ export default function StatsPage({
   activeView,
   onChangeView,
 }: StatsPageProps) {
+  const today = useMemo(() => new Date(), []);
+  const [selectedMonth, setSelectedMonth] = useState(() => new Date());
+
   const habits = useCheckpointStore((state) => state.habits);
   const completions = useCheckpointStore((state) => state.completions);
   const settings = useCheckpointStore((state) => state.settings);
 
-  const today = useMemo(() => new Date(), []);
-  const activeHabits = habits.filter((habit) => !habit.archivedAt);
+  const activeHabits = useMemo(() => {
+    return habits.filter((habit) => !habit.archivedAt);
+  }, [habits]);
 
   const stats = useMemo(() => {
     const weekDays = eachDayOfInterval({
@@ -48,11 +56,7 @@ export default function StatsPage({
 
     const weekProgress = weekDays.map((day) => {
       const dateKey = toDateKey(day);
-      const progress = getDayProgressPercent(
-        activeHabits,
-        completions,
-        dateKey,
-      );
+      const progress = getDayProgressPercent(habits, completions, dateKey);
 
       return {
         date: day,
@@ -63,7 +67,7 @@ export default function StatsPage({
 
     const thirtyDayProgress = last30Days.map((day) => {
       const dateKey = toDateKey(day);
-      return getDayProgressPercent(activeHabits, completions, dateKey);
+      return getDayProgressPercent(habits, completions, dateKey);
     });
 
     const completedLogs = completions.filter(
@@ -79,14 +83,14 @@ export default function StatsPage({
           );
 
     const dailyStreak = getDailyGoalStreak(
-      activeHabits,
+      habits,
       completions,
       today,
       settings.dailyGoalPercentage,
     );
 
     const perfectDaysThisWeek = getPerfectDaysThisWeek(
-      activeHabits,
+      habits,
       completions,
       today,
     );
@@ -116,7 +120,7 @@ export default function StatsPage({
       perfectDaysThisWeek,
       habitStats,
     };
-  }, [activeHabits, completions, settings.dailyGoalPercentage, today]);
+  }, [activeHabits, habits, completions, settings.dailyGoalPercentage, today]);
 
   return (
     <TerminalShell>
@@ -124,13 +128,14 @@ export default function StatsPage({
 
       <header className="space-y-2">
         <h1 className="text-[22px] leading-none tracking-tight">
-          <span className="text-emerald-400">checkpoint</span>
-          <span className="text-yellow-400">[local]</span>
-          <span className="text-sky-300">@stats</span>{" "}
-          <span className="text-emerald-400">#</span> <span>report</span>
+          <span className="text-(--cp-accent)">checkpoint</span>
+          <span className="text-(--cp-warn)">[local]</span>
+          <span className="text-(--cp-info)">@stats</span>{" "}
+          <span className="text-(--cp-accent)">#</span>{" "}
+          <span className="text-(--cp-text)">report</span>
         </h1>
 
-        <p className="text-lg leading-tight text-zinc-500">
+        <p className="text-lg leading-tight text-(--cp-muted)">
           // your behavior leaves logs.
           <br />
           read them honestly.
@@ -142,35 +147,48 @@ export default function StatsPage({
           icon={<Flame size={18} />}
           label="daily streak"
           value={`${stats.dailyStreak}d`}
-          accent="text-emerald-400"
+          accent="text-[var(--cp-accent)]"
         />
 
         <StatCard
           icon={<Shield size={18} />}
           label="perfect week"
           value={String(stats.perfectDaysThisWeek)}
-          accent="text-cyan-300"
+          accent="text-[var(--cp-info)]"
         />
 
         <StatCard
           icon={<Activity size={18} />}
           label="30d avg"
           value={`${stats.thirtyDayAverage}%`}
-          accent="text-yellow-400"
+          accent="text-[var(--cp-warn)]"
         />
 
         <StatCard
           icon={<CheckCircle2 size={18} />}
           label="logs"
           value={String(stats.completedLogs)}
-          accent="text-indigo-300"
+          accent="text-[var(--cp-info)]"
         />
       </section>
 
-      <section className="mt-8 border-b border-zinc-800 pb-6">
+      <MonthlyHeatmap
+        selectedMonth={selectedMonth}
+        habits={habits}
+        completions={completions}
+        goalPercentage={settings.dailyGoalPercentage}
+        onPreviousMonth={() =>
+          setSelectedMonth((currentMonth) => subMonths(currentMonth, 1))
+        }
+        onNextMonth={() =>
+          setSelectedMonth((currentMonth) => addMonths(currentMonth, 1))
+        }
+      />
+
+      <section className="mt-8 border-b border-(--cp-border) pb-6">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-emerald-400">$ week</h2>
-          <span className="text-zinc-500">
+          <h2 className="text-2xl font-bold text-(--cp-accent)">$ week</h2>
+          <span className="text-(--cp-muted)">
             goal {settings.dailyGoalPercentage}%
           </span>
         </div>
@@ -185,16 +203,20 @@ export default function StatsPage({
                 className="grid grid-cols-[64px_1fr_56px] items-center gap-3"
               >
                 <span
-                  className={metGoal ? "text-emerald-400" : "text-zinc-500"}
+                  className={
+                    metGoal
+                      ? "text-(--cp-accent)"
+                      : "text-(--cp-muted)"
+                  }
                 >
                   {format(day.date, "EEE")}
                 </span>
 
-                <div className="h-4 border border-zinc-800 bg-zinc-950 bg-[radial-gradient(#1f2937_1px,transparent_1px)] bg-size-[4px_4px]">
+                <div className="cp-dot-bg h-4 border border-(--cp-border)">
                   <div
                     className={[
                       "h-full transition-all",
-                      metGoal ? "bg-emerald-400" : "bg-zinc-700",
+                      metGoal ? "bg-(--cp-accent)" : "bg-(--cp-dim)",
                     ].join(" ")}
                     style={{ width: `${day.percent}%` }}
                   />
@@ -203,7 +225,9 @@ export default function StatsPage({
                 <span
                   className={[
                     "text-right",
-                    metGoal ? "text-emerald-400" : "text-zinc-500",
+                    metGoal
+                      ? "text-(--cp-accent)"
+                      : "text-(--cp-muted)",
                   ].join(" ")}
                 >
                   {day.percent}%
@@ -216,28 +240,29 @@ export default function StatsPage({
 
       <section className="mt-8 flex-1 space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-emerald-400">$ habits</h2>
-          <span className="text-zinc-500">sorted by streak</span>
+          <h2 className="text-2xl font-bold text-(--cp-accent)">
+            $ habits
+          </h2>
+          <span className="text-(--cp-muted)">sorted by streak</span>
         </div>
 
         {stats.habitStats.length === 0 ? (
-          <p className="text-zinc-600">// no active habits found</p>
+          <p className="text-(--cp-muted)">// no active habits found</p>
         ) : (
           <div className="space-y-3">
             {stats.habitStats.map(
               ({ habit, currentStreak, completionsForHabit }) => (
-                <article
-                  key={habit.id}
-                  className="border border-zinc-800 bg-zinc-950 p-3"
-                >
+                <article key={habit.id} className="cp-panel p-3">
                   <div className="grid grid-cols-[1fr_auto] items-center gap-3">
                     <div className="min-w-0">
-                      <p className="truncate text-xl text-zinc-100">
-                        <span className="mr-2 text-zinc-500">{habit.icon}</span>
+                      <p className="truncate text-xl text-(--cp-text)">
+                        <span className="mr-2 text-(--cp-muted)">
+                          {habit.icon}
+                        </span>
                         {habit.name}
                       </p>
 
-                      <p className="mt-1 text-sm text-zinc-600">
+                      <p className="mt-1 text-sm text-(--cp-muted)">
                         logs: {completionsForHabit} · routine: {habit.category}
                       </p>
                     </div>
@@ -246,8 +271,8 @@ export default function StatsPage({
                       className={[
                         "inline-flex items-center gap-1 text-xl",
                         currentStreak > 0
-                          ? "text-emerald-400"
-                          : "text-zinc-500",
+                          ? "text-(--cp-accent)"
+                          : "text-(--cp-muted)",
                       ].join(" ")}
                     >
                       <Flame size={18} />
@@ -261,12 +286,12 @@ export default function StatsPage({
         )}
       </section>
 
-      <footer className="mt-8 border-t border-zinc-800 pt-5 text-xl">
+      <footer className="mt-8 border-t border-(--cp-border) pt-5 text-xl">
         <div className="flex items-center justify-between">
           <span>
-            [<span className="text-emerald-400">✓</span>] stats
+            [<span className="text-(--cp-accent)">✓</span>] stats
           </span>
-          <span className="text-zinc-500">local-report</span>
+          <span className="text-(--cp-muted)">local-report</span>
         </div>
       </footer>
     </TerminalShell>
@@ -274,7 +299,7 @@ export default function StatsPage({
 }
 
 type StatCardProps = {
-  icon: React.ReactNode;
+  icon: ReactNode;
   label: string;
   value: string;
   accent: string;
@@ -282,13 +307,13 @@ type StatCardProps = {
 
 function StatCard({ icon, label, value, accent }: StatCardProps) {
   return (
-    <article className="border border-zinc-800 bg-zinc-950 p-3">
+    <article className="cp-panel p-3">
       <div className={`mb-3 inline-flex items-center gap-2 ${accent}`}>
         {icon}
         <span className="text-sm">{label}</span>
       </div>
 
-      <p className="text-3xl font-bold text-zinc-100">{value}</p>
+      <p className="text-3xl font-bold text-(--cp-text)">{value}</p>
     </article>
   );
 }

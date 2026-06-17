@@ -500,7 +500,7 @@ export default function HabitsPage({
                           <button
                             type="button"
                             onClick={() => startEditing(habit)}
-                            className="border border-[var(--cp-border)] p-2 text-[var(--cp-text)]"
+                            className="border border-(--cp-border) p-2 text-(--cp-text)"
                             aria-label={`Edit ${habit.name}`}
                           >
                             <Pencil size={16} />
@@ -509,7 +509,7 @@ export default function HabitsPage({
                           <button
                             type="button"
                             onClick={() => handleArchiveHabit(habit)}
-                            className="border border-[var(--cp-border)] p-2 text-[var(--cp-muted)]"
+                            className="border border-(--cp-border) p-2 text-(--cp-muted)"
                             aria-label={`Archive ${habit.name}`}
                           >
                             <Archive size={16} />
