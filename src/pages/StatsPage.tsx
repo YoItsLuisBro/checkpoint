@@ -13,6 +13,7 @@ import { Flame, Shield, Activity, CheckCircle2 } from "lucide-react";
 import TerminalShell from "../components/layout/TerminalShell";
 import TopNav, { type AppView } from "../components/layout/TopNav";
 import MonthlyHeatmap from "../components/stats/MonthlyHeatMap";
+import WeeklyReport from "../components/stats/WeeklyReport";
 
 import { useCheckpointStore } from "../store/useCheckpointStore";
 import {
@@ -185,6 +186,13 @@ export default function StatsPage({
         }
       />
 
+      <WeeklyReport
+        selectedDate={today}
+        habits={habits}
+        completions={completions}
+        goalPercentage={settings.dailyGoalPercentage}
+      />
+
       <section className="mt-8 border-b border-(--cp-border) pb-6">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-2xl font-bold text-(--cp-accent)">$ week</h2>
@@ -204,9 +212,7 @@ export default function StatsPage({
               >
                 <span
                   className={
-                    metGoal
-                      ? "text-(--cp-accent)"
-                      : "text-(--cp-muted)"
+                    metGoal ? "text-(--cp-accent)" : "text-(--cp-muted)"
                   }
                 >
                   {format(day.date, "EEE")}
@@ -225,9 +231,7 @@ export default function StatsPage({
                 <span
                   className={[
                     "text-right",
-                    metGoal
-                      ? "text-(--cp-accent)"
-                      : "text-(--cp-muted)",
+                    metGoal ? "text-(--cp-accent)" : "text-(--cp-muted)",
                   ].join(" ")}
                 >
                   {day.percent}%
@@ -240,9 +244,7 @@ export default function StatsPage({
 
       <section className="mt-8 flex-1 space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-(--cp-accent)">
-            $ habits
-          </h2>
+          <h2 className="text-2xl font-bold text-(--cp-accent)">$ habits</h2>
           <span className="text-(--cp-muted)">sorted by streak</span>
         </div>
 
