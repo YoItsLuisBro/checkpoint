@@ -1,0 +1,208 @@
+import { useState } from "react";
+import { CalendarDays, Flame, Shield } from "lucide-react";
+import { addWeeks, subWeeks } from "date-fns";
+
+import TerminalShell from "../components/layout/TerminalShell";
+import TopNav, { type AppView } from "../components/layout/TopNav";
+import TerminalHeader from "../components/dashboard/TerminalHeader";
+import WeekStrip from "../components/dashboard/WeekStrip";
+import RoutineBlock from "../components/dashboard/RoutineBlock";
+import DailyProgressBar from "../components/dashboard/DailyProgressBar";
+
+import { getReadableDate } from "../lib/dates";
+import { useCheckpointStore } from "../store/useCheckpointStore";
+import { getDueHabits } from "../lib/schedules";
+import type { HabitCategory } from "../types/checkpoint";
+
+import {
+  getDailyGoalStreak,
+  getDayProgressPercent,
+  getHabitCurrentStreak,
+  getPerfectDaysThisWeek,
+  toDateKey,
+} from "../lib/streaks";
+
+const categoryConfig: Record<
+  HabitCategory,
+  {
+    label: string;
+    icon: string;
+    accent: string;
+  }
+> = {
+  morning: {
+    label: "Ohayo",
+    icon: "☀",
+    accent: "text-[var(--cp-warn)]",
+  },
+  day: {
+    label: "Daily",
+    icon: "◇",
+    accent: "text-[var(--cp-accent)]",
+  },
+  night: {
+    label: "Oyasumi",
+    icon: "☾",
+    accent: "text-[var(--cp-info)]",
+  },
+};
+
+type DashboardPageProps = {
+  activeView: AppView;
+  onChangeView: (view: AppView) => void;
+};
+
+export default function DashboardPage({
+  activeView,
+  onChangeView,
+}: DashboardPageProps) {
+  const [selectedDate, setSelectedDate] = useState(() => new Date());
+  const selectedDateKey = toDateKey(selectedDate);
+
+  const habits = useCheckpointStore((state) => state.habits);
+  const completions = useCheckpointStore((state) => state.completions);
+  const settings = useCheckpointStore((state) => state.settings);
+  const toggleHabit = useCheckpointStore((state) => state.toggleHabit);
+  const adjustHabitValue = useCheckpointStore(
+    (state) => state.adjustHabitValue,
+  );
+
+  const dueHabits = getDueHabits(habits, selectedDate);
+
+  const isHabitDoneForDate = (habitId: string, dateKey: string) => {
+    return completions.some(
+      (completion) =>
+        completion.habitId === habitId &&
+        completion.date === dateKey &&
+        completion.completed,
+    );
+  };
+
+  const isHabitDone = (habitId: string) => {
+    return isHabitDoneForDate(habitId, selectedDateKey);
+  };
+
+  const getHabitCompletion = (habitId: string) => {
+    return completions.find(
+      (completion) =>
+        completion.habitId === habitId && completion.date === selectedDateKey,
+    );
+  };
+
+  const getDayPercent = (dateKey: string) => {
+    return getDayProgressPercent(habits, completions, dateKey).percent;
+  };
+
+  const progress = getDayProgressPercent(habits, completions, selectedDateKey);
+
+  const dailyStreak = getDailyGoalStreak(
+    habits,
+    completions,
+    selectedDate,
+    settings.dailyGoalPercentage,
+  );
+
+  const shieldCount = getPerfectDaysThisWeek(habits, completions, selectedDate);
+
+  const getHabitStreak = (habitId: string) => {
+    const habit = habits.find((item) => item.id === habitId);
+
+    if (!habit) {
+      return 0;
+    }
+
+    return getHabitCurrentStreak(habit, completions, selectedDate);
+  };
+
+  const groupedHabits: Record<HabitCategory, typeof habits> = {
+    morning: dueHabits
+      .filter((habit) => habit.category === "morning")
+      .sort((a, b) => a.order - b.order),
+    day: dueHabits
+      .filter((habit) => habit.category === "day")
+      .sort((a, b) => a.order - b.order),
+    night: dueHabits
+      .filter((habit) => habit.category === "night")
+      .sort((a, b) => a.order - b.order),
+  };
+
+  return (
+    <TerminalShell>
+      <TopNav activeView={activeView} onChangeView={onChangeView} />
+
+      <TerminalHeader settings={settings} />
+
+      <section className="mt-8 space-y-3">
+        <div className="flex items-center gap-2 text-xl font-semibold">
+          <CalendarDays size={20} className="text-(--cp-accent)" />
+          <span>{getReadableDate(selectedDate)}</span>
+        </div>
+
+        <div className="flex items-center gap-3 text-xl">
+          <span className="inline-flex items-center gap-1 text-(--cp-accent)">
+            <Flame size={20} />
+            {dailyStreak} days
+          </span>
+
+          <span className="text-(--cp-muted)">*</span>
+
+          <span className="inline-flex items-center gap-1 text-(--cp-info)">
+            <Shield size={20} />
+            {shieldCount}
+          </span>
+        </div>
+      </section>
+
+      <WeekStrip
+        selectedDate={selectedDate}
+        goalPercentage={settings.dailyGoalPercentage}
+        getDayPercent={getDayPercent}
+        onSelectDate={setSelectedDate}
+        onPreviousWeek={() =>
+          setSelectedDate((currentDate) => subWeeks(currentDate, 1))
+        }
+        onNextWeek={() =>
+          setSelectedDate((currentDate) => addWeeks(currentDate, 1))
+        }
+      />
+
+      <section className="mt-8 flex-1 space-y-5">
+        {Object.entries(groupedHabits).map(([category, categoryHabits]) => {
+          const typedCategory = category as HabitCategory;
+
+          return (
+            <RoutineBlock
+              key={typedCategory}
+              category={typedCategory}
+              config={categoryConfig[typedCategory]}
+              habits={categoryHabits}
+              isHabitDone={isHabitDone}
+              getHabitCompletion={getHabitCompletion}
+              getHabitStreak={getHabitStreak}
+              onToggleHabit={(habitId) => toggleHabit(habitId, selectedDateKey)}
+              onAdjustHabit={(habitId, delta) =>
+                adjustHabitValue(habitId, selectedDateKey, delta)
+              }
+            />
+          );
+        })}
+      </section>
+
+      <DailyProgressBar
+        completed={progress.completed}
+        total={progress.total}
+        percent={progress.percent}
+        goal={settings.dailyGoalPercentage}
+      />
+
+      <footer className="mt-8 border-t border-(--cp-border) pt-5 text-xl">
+        <div className="flex items-center justify-between">
+          <span>
+            [<span className="text-(--cp-accent)">✓</span>] checkpoint
+          </span>
+          <span className="text-(--cp-muted)">local-first</span>
+        </div>
+      </footer>
+    </TerminalShell>
+  );
+}

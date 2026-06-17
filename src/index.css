@@ -1,0 +1,188 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: dark;
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
+}
+
+[data-theme="terminal"] {
+  --cp-bg: #080b10;
+  --cp-surface: #0b0f17;
+  --cp-panel: #090d14;
+  --cp-border: #1f2937;
+  --cp-text: #e5e7eb;
+  --cp-muted: #6b7280;
+  --cp-dim: #374151;
+  --cp-accent: #34d399;
+  --cp-accent-soft: rgba(52, 211, 153, 0.12);
+  --cp-accent-contrast: #020617;
+  --cp-warn: #f59e0b;
+  --cp-info: #38bdf8;
+  --cp-danger: #fb7185;
+  --cp-glow: rgba(52, 211, 153, 0.08);
+}
+
+[data-theme="matrix"] {
+  --cp-bg: #020604;
+  --cp-surface: #06110a;
+  --cp-panel: #08170d;
+  --cp-border: #164e2f;
+  --cp-text: #d7ffe4;
+  --cp-muted: #5ea37a;
+  --cp-dim: #275039;
+  --cp-accent: #22c55e;
+  --cp-accent-soft: rgba(34, 197, 94, 0.14);
+  --cp-accent-contrast: #020604;
+  --cp-warn: #a3e635;
+  --cp-info: #67e8f9;
+  --cp-danger: #fb7185;
+  --cp-glow: rgba(34, 197, 94, 0.12);
+}
+
+[data-theme="amber"] {
+  --cp-bg: #0c0802;
+  --cp-surface: #141006;
+  --cp-panel: #1b1408;
+  --cp-border: #3f2d0b;
+  --cp-text: #fff7d6;
+  --cp-muted: #a17932;
+  --cp-dim: #4a3510;
+  --cp-accent: #f59e0b;
+  --cp-accent-soft: rgba(245, 158, 11, 0.14);
+  --cp-accent-contrast: #140b02;
+  --cp-warn: #fbbf24;
+  --cp-info: #facc15;
+  --cp-danger: #fb7185;
+  --cp-glow: rgba(245, 158, 11, 0.1);
+}
+
+[data-theme="blueprint"] {
+  --cp-bg: #050816;
+  --cp-surface: #08111f;
+  --cp-panel: #0b1727;
+  --cp-border: #1e3a5f;
+  --cp-text: #dbeafe;
+  --cp-muted: #6b93bf;
+  --cp-dim: #254568;
+  --cp-accent: #38bdf8;
+  --cp-accent-soft: rgba(56, 189, 248, 0.14);
+  --cp-accent-contrast: #03111f;
+  --cp-warn: #818cf8;
+  --cp-info: #22d3ee;
+  --cp-danger: #fb7185;
+  --cp-glow: rgba(56, 189, 248, 0.12);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  overflow-x: hidden;
+  background: #080b10;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+::selection {
+  background: var(--cp-accent-soft);
+}
+
+.cp-app {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top, var(--cp-glow), transparent 28rem),
+    var(--cp-bg);
+  color: var(--cp-text);
+}
+
+.cp-shell {
+  margin-inline: auto;
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+  max-width: 430px;
+  flex-direction: column;
+  border-inline: 1px solid var(--cp-border);
+  background: var(--cp-surface);
+  padding: 1.25rem 1rem;
+  box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.8);
+}
+
+.cp-panel {
+  border: 1px solid var(--cp-border);
+  background: var(--cp-panel);
+}
+
+.cp-input {
+  width: 100%;
+  border: 1px solid var(--cp-border);
+  background: var(--cp-surface);
+  color: var(--cp-text);
+  padding: 0.75rem;
+  outline: none;
+}
+
+.cp-input:focus {
+  border-color: var(--cp-accent);
+}
+
+.cp-primary-btn {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 1px solid var(--cp-accent);
+  background: var(--cp-accent);
+  color: var(--cp-accent-contrast);
+  padding: 0.75rem 1rem;
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
+.cp-ghost-btn {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 1px solid var(--cp-border);
+  background: var(--cp-surface);
+  color: var(--cp-text);
+  padding: 0.75rem 1rem;
+  font-size: 1.125rem;
+}
+
+.cp-danger-btn {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 1px solid var(--cp-danger);
+  background: rgba(251, 113, 133, 0.1);
+  color: var(--cp-danger);
+  padding: 0.75rem 1rem;
+  font-size: 1.125rem;
+}
+
+.cp-dot-bg {
+  background-color: var(--cp-panel);
+  background-image: radial-gradient(var(--cp-dim) 1px, transparent 1px);
+  background-size: 4px 4px;
+}
