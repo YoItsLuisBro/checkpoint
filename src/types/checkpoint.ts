@@ -80,6 +80,8 @@ export type CheckpointState = {
   addHabit: (input: HabitInput) => void;
   updateHabit: (habitId: string, input: HabitInput) => void;
   archiveHabit: (habitId: string) => void;
+  restoreHabit: (habitId: string) => void;
+  deleteHabit: (habitId: string) => void;
 
   updateSettings: (input: SettingsInput) => void;
   resetAppData: () => void;

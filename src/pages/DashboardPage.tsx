@@ -31,7 +31,7 @@ const categoryConfig: Record<
   }
 > = {
   morning: {
-    label: "Ohayo",
+    label: "Morning",
     icon: "☀",
     accent: "text-[var(--cp-warn)]",
   },
@@ -41,7 +41,7 @@ const categoryConfig: Record<
     accent: "text-[var(--cp-accent)]",
   },
   night: {
-    label: "Oyasumi",
+    label: "Night",
     icon: "☾",
     accent: "text-[var(--cp-info)]",
   },

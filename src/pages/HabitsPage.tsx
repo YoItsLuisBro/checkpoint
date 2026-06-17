@@ -1,5 +1,13 @@
 import { useMemo, useState, type FormEvent } from "react";
-import { Archive, Pencil, Plus, Save, X } from "lucide-react";
+import {
+  Archive,
+  Pencil,
+  Plus,
+  RotateCcw,
+  Save,
+  Trash2,
+  X,
+} from "lucide-react";
 
 import TerminalShell from "../components/layout/TerminalShell";
 import TopNav, { type AppView } from "../components/layout/TopNav";
@@ -25,9 +33,9 @@ type HabitsPageProps = {
 };
 
 const categoryLabels: Record<HabitCategory, string> = {
-  morning: "Ohayo",
+  morning: "Morning",
   day: "Daily",
-  night: "Oyasumi",
+  night: "Night",
 };
 
 const categoryOptions: HabitCategory[] = ["morning", "day", "night"];
@@ -54,6 +62,8 @@ export default function HabitsPage({
   const addHabit = useCheckpointStore((state) => state.addHabit);
   const updateHabit = useCheckpointStore((state) => state.updateHabit);
   const archiveHabit = useCheckpointStore((state) => state.archiveHabit);
+  const restoreHabit = useCheckpointStore((state) => state.restoreHabit);
+  const deleteHabit = useCheckpointStore((state) => state.deleteHabit);
 
   const [form, setForm] = useState<HabitInput>(() => getEmptyForm());
   const [editingHabitId, setEditingHabitId] = useState<string | null>(null);
@@ -61,6 +71,12 @@ export default function HabitsPage({
   const activeHabits = useMemo(() => {
     return habits
       .filter((habit) => !habit.archivedAt)
+      .sort((a, b) => a.order - b.order);
+  }, [habits]);
+
+  const archivedHabits = useMemo(() => {
+    return habits
+      .filter((habit) => habit.archivedAt)
       .sort((a, b) => a.order - b.order);
   }, [habits]);
 
@@ -143,6 +159,32 @@ export default function HabitsPage({
       top: 0,
       behavior: "smooth",
     });
+  }
+
+  function handleArchiveHabit(habit: Habit) {
+    const confirmed = window.confirm(`Archive "${habit.name}"?`);
+
+    if (!confirmed) {
+      return;
+    }
+
+    archiveHabit(habit.id);
+  }
+
+  function handleRestoreHabit(habit: Habit) {
+    restoreHabit(habit.id);
+  }
+
+  function handleDeleteHabit(habit: Habit) {
+    const confirmed = window.confirm(
+      `Permanently delete "${habit.name}"? This will also delete its completion history.`,
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    deleteHabit(habit.id);
   }
 
   return (
@@ -396,10 +438,7 @@ export default function HabitsPage({
           const habitsForCategory = groupedHabits[category];
 
           return (
-            <div
-              key={category}
-              className="border-b border-(--cp-border) pb-5"
-            >
+            <div key={category} className="border-b border-(--cp-border) pb-5">
               <div className="mb-3 flex items-center justify-between">
                 <h2 className="text-2xl font-bold text-(--cp-accent)">
                   {categoryLabels[category]}
@@ -448,7 +487,7 @@ export default function HabitsPage({
 
                           <button
                             type="button"
-                            onClick={() => archiveHabit(habit.id)}
+                            onClick={() => handleArchiveHabit(habit)}
                             className="border border-(--cp-border) p-2 text-(--cp-muted)"
                             aria-label={`Archive ${habit.name}`}
                           >
@@ -463,6 +502,79 @@ export default function HabitsPage({
             </div>
           );
         })}
+      </section>
+
+      <section className="mt-8 border-b border-[var(--cp-border)] pb-6">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-2xl font-bold text-[var(--cp-warn)]">
+            $ archived
+          </h2>
+
+          <span className="text-[var(--cp-muted)]">
+            [{archivedHabits.length}]
+          </span>
+        </div>
+
+        {archivedHabits.length === 0 ? (
+          <p className="text-[var(--cp-muted)]">// no archived habits</p>
+        ) : (
+          <div className="space-y-3">
+            {archivedHabits.map((habit) => (
+              <article
+                key={habit.id}
+                className="border border-[var(--cp-border)] bg-[var(--cp-panel)] p-3 opacity-80"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-xl text-[var(--cp-text)]">
+                      <span className="mr-2 text-[var(--cp-muted)]">
+                        {habit.icon}
+                      </span>
+                      {habit.name}
+                    </p>
+
+                    <p className="mt-1 text-sm text-[var(--cp-muted)]">
+                      mode: {habit.mode}
+                      {habit.target ? ` · target: ${habit.target}` : ""}
+                      {habit.unit ? ` ${habit.unit}` : ""}
+                    </p>
+
+                    <p className="mt-1 text-sm text-[var(--cp-muted)]">
+                      schedule: {getScheduleLabel(habit.schedule)}
+                    </p>
+
+                    {habit.archivedAt && (
+                      <p className="mt-1 text-sm text-[var(--cp-muted)]">
+                        archived:{" "}
+                        {new Date(habit.archivedAt).toLocaleDateString()}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="flex shrink-0 items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleRestoreHabit(habit)}
+                      className="border border-[var(--cp-border)] p-2 text-[var(--cp-accent)]"
+                      aria-label={`Restore ${habit.name}`}
+                    >
+                      <RotateCcw size={16} />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteHabit(habit)}
+                      className="border border-[var(--cp-danger)] p-2 text-[var(--cp-danger)]"
+                      aria-label={`Delete ${habit.name}`}
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
       </section>
 
       <footer className="mt-8 border-t border-(--cp-border) pt-5 text-xl">

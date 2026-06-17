@@ -131,6 +131,28 @@ export const useCheckpointStore = create<CheckpointState>()(
         }));
       },
 
+      restoreHabit: (habitId: string) => {
+        set((state) => ({
+          habits: state.habits.map((habit) =>
+            habit.id === habitId
+              ? {
+                  ...habit,
+                  archivedAt: null,
+                }
+              : habit,
+          ),
+        }));
+      },
+
+      deleteHabit: (habitId: string) => {
+        set((state) => ({
+          habits: state.habits.filter((habit) => habit.id !== habitId),
+          completions: state.completions.filter(
+            (completion) => completion.habitId !== habitId,
+          ),
+        }));
+      },
+
       updateSettings: (input: SettingsInput) => {
         set(() => ({
           settings: {
