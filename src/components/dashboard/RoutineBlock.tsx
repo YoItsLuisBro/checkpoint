@@ -18,6 +18,7 @@ type RoutineBlockProps = {
   isHabitDone: (habitId: string) => boolean;
   getHabitCompletion: (habitId: string) => HabitCompletion | undefined;
   getHabitStreak: (habitId: string) => number;
+  getHabitWeeklyTargetLabel: (habit: Habit) => string | null;
   onToggleHabit: (habitId: string) => void;
   onAdjustHabit: (habitId: string, delta: number) => void;
 };
@@ -31,6 +32,7 @@ export default function RoutineBlock({
   getHabitStreak,
   onToggleHabit,
   onAdjustHabit,
+  getHabitWeeklyTargetLabel,
 }: RoutineBlockProps) {
   const done = habits.filter((habit) => isHabitDone(habit.id)).length;
   const total = habits.length;
@@ -55,6 +57,7 @@ export default function RoutineBlock({
             completion={getHabitCompletion(habit.id)}
             isDone={isHabitDone(habit.id)}
             streak={getHabitStreak(habit.id)}
+            weeklyTargetLabel={getHabitWeeklyTargetLabel(habit)}
             onToggle={() => onToggleHabit(habit.id)}
             onAdjust={(delta) => onAdjustHabit(habit.id, delta)}
           />

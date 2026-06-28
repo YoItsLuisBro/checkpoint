@@ -102,7 +102,8 @@ export const habitTemplates: HabitTemplate[] = [
         mode: "checkbox",
         schedule: {
           type: "specific-days",
-          days: [1, 3, 5],
+          weeklyTarget: 3,
+          days: [],
         },
       },
       {

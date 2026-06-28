@@ -318,23 +318,40 @@ export default function HabitsPage({
               onChange={(event) => {
                 const nextType = event.target.value as HabitScheduleType;
 
-                setForm((current) => ({
-                  ...current,
-                  schedule:
-                    nextType === "specific-days"
-                      ? {
-                          type: nextType,
-                          days:
-                            current.schedule.days &&
-                            current.schedule.days.length > 0
-                              ? current.schedule.days
-                              : [1, 2, 3, 4, 5],
-                        }
-                      : {
-                          type: nextType,
-                          days: [],
-                        },
-                }));
+                setForm((current) => {
+                  if (nextType === "specific-days") {
+                    return {
+                      ...current,
+                      schedule: {
+                        type: nextType,
+                        days:
+                          current.schedule.days &&
+                          current.schedule.days.length > 0
+                            ? current.schedule.days
+                            : [1, 2, 3, 4, 5],
+                      },
+                    };
+                  }
+
+                  if (nextType === "weekly-target") {
+                    return {
+                      ...current,
+                      schedule: {
+                        type: nextType,
+                        days: [],
+                        weeklyTarget: current.schedule.weeklyTarget ?? 3,
+                      },
+                    };
+                  }
+
+                  return {
+                    ...current,
+                    schedule: {
+                      type: nextType,
+                      days: [],
+                    },
+                  };
+                });
               }}
               className="cp-input"
             >
@@ -389,6 +406,29 @@ export default function HabitsPage({
                 })}
               </div>
             </div>
+          )}
+
+          {form.schedule.type === "weekly-target" && (
+            <label className="block space-y-2">
+              <span className="text-(--cp-muted)">times per week</span>
+              <input
+                type="number"
+                min={1}
+                max={7}
+                value={form.schedule.weeklyTarget ?? 3}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    schedule: {
+                      type: "weekly-target",
+                      days: [],
+                      weeklyTarget: Number(event.target.value),
+                    },
+                  }))
+                }
+                className="cp-input"
+              />
+            </label>
           )}
 
           <div className="grid grid-cols-2 gap-3">

@@ -13,13 +13,14 @@ import EmptyState from "../components/ui/EmptyState";
 import { getReadableDate } from "../lib/dates";
 import { useCheckpointStore } from "../store/useCheckpointStore";
 import { getDueHabits } from "../lib/schedules";
-import type { HabitCategory } from "../types/checkpoint";
+import type { Habit, HabitCategory } from "../types/checkpoint";
 
 import {
   getDailyGoalStreak,
   getDayProgressPercent,
   getHabitCurrentStreak,
   getPerfectDaysThisWeek,
+  getWeeklyTargetProgress,
   toDateKey,
 } from "../lib/streaks";
 
@@ -99,7 +100,24 @@ export default function DashboardPage({
   };
 
   const isHabitDone = (habitId: string) => {
-    return isHabitDoneForDate(habitId, selectedDateKey);
+    const habit = habits.find((item) => item.id === habitId);
+    const completedToday = isHabitDoneForDate(habitId, selectedDateKey);
+
+    if (!habit) {
+      return completedToday;
+    }
+
+    if (habit.schedule?.type === "weekly-target") {
+      const weeklyProgress = getWeeklyTargetProgress(
+        habit,
+        completions,
+        selectedDate,
+      );
+
+      return completedToday || weeklyProgress.isComplete;
+    }
+
+    return completedToday;
   };
 
   const getHabitCompletion = (habitId: string) => {
@@ -133,6 +151,20 @@ export default function DashboardPage({
 
     return getHabitCurrentStreak(habit, completions, selectedDate);
   };
+
+  const getHabitWeeklyTargetLabel = (habit: Habit) => {
+    if (habit.schedule?.type !== "weekly-target") {
+      return null;
+    }
+
+    const weeklyProgress = getWeeklyTargetProgress(
+      habit,
+      completions,
+      selectedDate
+    );
+
+    return `${weeklyProgress.completed}/${weeklyProgress.target}`
+  }
 
   const groupedHabits: Record<HabitCategory, typeof habits> = {
     morning: [],
@@ -225,6 +257,7 @@ export default function DashboardPage({
                   isHabitDone={isHabitDone}
                   getHabitCompletion={getHabitCompletion}
                   getHabitStreak={getHabitStreak}
+                  getHabitWeeklyTargetLabel={getHabitWeeklyTargetLabel}
                   onToggleHabit={(habitId) =>
                     toggleHabit(habitId, selectedDateKey)
                   }

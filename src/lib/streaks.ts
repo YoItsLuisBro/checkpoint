@@ -5,9 +5,14 @@ import {
   parseISO,
   startOfWeek,
   subDays,
+  subWeeks,
 } from "date-fns";
 import type { Habit, HabitCompletion } from "../types/checkpoint";
-import { getDueHabits, isHabitDueOnDate } from "./schedules";
+import {
+  getDueHabits,
+  isHabitDueOnDate,
+  normalizeHabitSchedule,
+} from "./schedules";
 
 export function toDateKey(date: Date) {
   return format(date, "yyyy-MM-dd");
@@ -26,11 +31,92 @@ export function isHabitCompletedOnDate(
   );
 }
 
+export function getWeeklyTargetProgress(
+  habit: Habit,
+  completions: HabitCompletion[],
+  selectedDate: Date,
+) {
+  const schedule = normalizeHabitSchedule(habit.schedule);
+  const target =
+    schedule.type === "weekly-target" ? (schedule.weeklyTarget ?? 3) : 1;
+
+  const weekDays = eachDayOfInterval({
+    start: startOfWeek(selectedDate, { weekStartsOn: 1 }),
+    end: endOfWeek(selectedDate, { weekStartsOn: 1 }),
+  });
+
+  const completed = weekDays.filter((day) =>
+    isHabitCompletedOnDate(completions, habit.id, toDateKey(day)),
+  ).length;
+
+  const percent = Math.min(100, Math.round((completed / target) * 100));
+
+  return {
+    completed,
+    target,
+    percent,
+    isComplete: completed >= target,
+  };
+}
+
+function isHabitCompleteForProgress(
+  habit: Habit,
+  completions: HabitCompletion[],
+  dateKey: string,
+) {
+  const schedule = normalizeHabitSchedule(habit.schedule);
+
+  if (schedule.type === "weekly-target") {
+    const selectedDate = parseISO(dateKey);
+    const completedToday = isHabitCompletedOnDate(
+      completions,
+      habit.id,
+      dateKey,
+    );
+
+    const weeklyProgress = getWeeklyTargetProgress(
+      habit,
+      completions,
+      selectedDate,
+    );
+
+    return completedToday || weeklyProgress.isComplete;
+  }
+
+  return isHabitCompletedOnDate(completions, habit.id, dateKey);
+}
+
 export function getHabitCurrentStreak(
   habit: Habit,
   completions: HabitCompletion[],
   selectedDate: Date,
 ) {
+  const schedule = normalizeHabitSchedule(habit.schedule);
+
+  if (schedule.type === "weekly-target") {
+    let streak = 0;
+    let cursor = selectedDate;
+    let safetyLimit = 0;
+
+    while (safetyLimit < 260) {
+      const weeklyProgress = getWeeklyTargetProgress(
+        habit,
+        completions,
+        cursor,
+      );
+
+      if (!weeklyProgress.isComplete) {
+        break;
+      }
+
+      streak += 1;
+      cursor = subWeeks(cursor, 1);
+      safetyLimit += 1;
+    }
+
+    return streak;
+  }
+
   let streak = 0;
   let cursor = selectedDate;
   let safetyLimit = 0;
@@ -64,7 +150,7 @@ export function getDayProgressPercent(
   const dueHabits = getDueHabits(habits, date);
 
   const completed = dueHabits.filter((habit) =>
-    isHabitCompletedOnDate(completions, habit.id, dateKey),
+    isHabitCompleteForProgress(habit, completions, dateKey),
   ).length;
 
   const total = dueHabits.length;

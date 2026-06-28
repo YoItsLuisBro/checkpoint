@@ -8,6 +8,7 @@ type HabitRowProps = {
   streak: number;
   onToggle: () => void;
   onAdjust: (delta: number) => void;
+  weeklyTargetLabel?: string | null;
 };
 
 export default function HabitRow({
@@ -15,6 +16,7 @@ export default function HabitRow({
   completion,
   isDone,
   streak,
+  weeklyTargetLabel,
   onToggle,
   onAdjust,
 }: HabitRowProps) {
@@ -29,11 +31,7 @@ export default function HabitRow({
         onClick={onToggle}
         className="grid w-full grid-cols-[64px_1fr_64px] items-center gap-2 text-left text-xl"
       >
-        <span
-          className={
-            isDone ? "text-(--cp-accent)" : "text-(--cp-text)"
-          }
-        >
+        <span className={isDone ? "text-(--cp-accent)" : "text-(--cp-text)"}>
           [{isDone ? "✓" : " "}]
         </span>
 
@@ -47,6 +45,11 @@ export default function HabitRow({
         >
           <span className="mr-2 text-(--cp-muted)">{habit.icon}</span>
           {habit.name}
+          {weeklyTargetLabel && (
+            <span className="ml-2 text-sm text-(--cp-muted)">
+              [{weeklyTargetLabel}]
+            </span>
+          )}
         </span>
 
         <span
@@ -86,6 +89,7 @@ export default function HabitRow({
           <p className="mt-1 text-sm text-(--cp-muted)">
             {habit.mode}: {value}/{target}
             {unit ? ` ${unit}` : ""}
+            {weeklyTargetLabel ? ` · week ${weeklyTargetLabel}` : ""}
           </p>
         </div>
 

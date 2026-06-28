@@ -15,7 +15,7 @@ export const weekdayOptions: Array<{
   { value: 4, label: "Thu" },
   { value: 5, label: "Fri" },
   { value: 6, label: "Sat" },
-  { value: 7, label: "Sun" },
+  { value: 0, label: "Sun" },
 ];
 
 export const scheduleTypeOptions: Array<{
@@ -26,6 +26,7 @@ export const scheduleTypeOptions: Array<{
   { value: "weekdays", label: "weekdays" },
   { value: "weekends", label: "weekends" },
   { value: "specific-days", label: "specific days" },
+  { value: "weekly-target", label: "x times per week" },
 ];
 
 export function getDefaultHabitSchedule(): HabitSchedule {
@@ -33,6 +34,14 @@ export function getDefaultHabitSchedule(): HabitSchedule {
     type: "daily",
     days: [],
   };
+}
+
+function clampWeeklyTarget(value: number | undefined) {
+  if (!value || Number.isNaN(value)) {
+    return 3;
+  }
+
+  return Math.min(7, Math.max(1, Math.round(value)));
 }
 
 export function normalizeHabitSchedule(
@@ -53,10 +62,26 @@ export function normalizeHabitSchedule(
     };
   }
 
-  return {
-    type: schedule.type,
-    days: [],
-  };
+  if (schedule.type === "weekly-target") {
+    return {
+      type: "weekly-target",
+      days: [],
+      weeklyTarget: clampWeeklyTarget(schedule.weeklyTarget),
+    };
+  }
+
+  if (
+    schedule.type === "daily" ||
+    schedule.type === "weekdays" ||
+    schedule.type === "weekends"
+  ) {
+    return {
+      type: schedule.type,
+      days: [],
+    };
+  }
+
+  return getDefaultHabitSchedule();
 }
 
 export function isHabitDueOnDate(habit: Habit, date: Date) {
@@ -77,6 +102,10 @@ export function isHabitDueOnDate(habit: Habit, date: Date) {
 
   if (schedule.type === "specific-days") {
     return schedule.days?.includes(day) ?? false;
+  }
+
+  if (schedule.type === "weekly-target") {
+    return true;
   }
 
   return true;
@@ -103,9 +132,13 @@ export function getScheduleLabel(schedule?: HabitSchedule) {
     return "weekends";
   }
 
+  if (normalized.type === "weekly-target") {
+    return `${normalized.weeklyTarget ?? 3}x/week`;
+  }
+
   const labels = weekdayOptions
     .filter((option) => normalized.days?.includes(option.value))
-    .map((option) => option.value);
+    .map((option) => option.label);
 
   return labels.length > 0 ? labels.join(", ") : "specific days";
 }

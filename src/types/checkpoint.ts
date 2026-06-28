@@ -8,11 +8,13 @@ export type HabitScheduleType =
   | "daily"
   | "weekdays"
   | "weekends"
-  | "specific-days";
+  | "specific-days"
+  | "weekly-target";
 
 export type HabitSchedule = {
   type: HabitScheduleType;
   days?: number[];
+  weeklyTarget?: number;
 };
 
 export type Habit = {
