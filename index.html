@@ -2,12 +2,45 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+
+    <title>CHECKPOINT</title>
+
+    <meta
+      name="description"
+      content="CHECKPOINT is a local-first terminal-style habit tracker."
+    />
+
+    <meta name="theme-color" content="#080b10" />
+    <meta name="color-scheme" content="dark" />
+
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="application-name" content="CHECKPOINT" />
+
+    <meta name="apple-mobile-web-app-title" content="CHECKPOINT" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>checkpoint</title>
+    <link rel="apple-touch-icon" href="/apple-touch-icon.svg" />
+    <link rel="mask-icon" href="/masked-icon.svg" color="#34d399" />
   </head>
+
   <body>
+    <noscript>
+      CHECKPOINT requires JavaScript to run. Your habit data is stored locally
+      in this browser.
+    </noscript>
+
     <div id="root"></div>
+
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

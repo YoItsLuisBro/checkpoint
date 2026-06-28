@@ -186,3 +186,12 @@ textarea {
   background-image: radial-gradient(var(--cp-dim) 1px, transparent 1px);
   background-size: 4px 4px;
 }
+
+@supports (padding: max(0px)) {
+  .cp-shell {
+    padding-top: max(1.25rem, env(safe-area-inset-top));
+    padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+}
