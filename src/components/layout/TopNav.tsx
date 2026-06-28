@@ -29,7 +29,7 @@ const navItems: Array<{
 
 export default function TopNav({ activeView, onChangeView }: TopNavProps) {
   return (
-    <nav className="-mx-4 mb-6 border-b bg-(--cp-surface) border-(--cp-border)">
+    <nav className="sticky top-0 z-50 -mx-4 mb-6 border-b bg-(--cp-surface) border-(--cp-border) -mt-3">
       <div className="grid grid-cols-4">
         {navItems.map((item) => {
           const isActive = activeView === item.id;
