@@ -2,11 +2,18 @@ import { parseISO } from "date-fns";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-import { getDueHabits, normalizeHabitSchedule } from "../lib/schedules";
 import { habitTemplates } from "../lib/habitTemplates";
+import { getDueHabits, normalizeHabitSchedule } from "../lib/schedules";
 import { seedHabits } from "../lib/seed";
+import {
+  canUseShieldOnDate,
+  getGoalDayCount,
+  getShieldMilestonesEarned,
+  MAX_SHIELDS,
+} from "../lib/shields";
 
 import type {
+  AppSettings,
   CheckpointBackup,
   CheckpointState,
   Habit,
@@ -14,6 +21,7 @@ import type {
   HabitInput,
   OnboardingInput,
   SettingsInput,
+  ShieldUse,
 } from "../types/checkpoint";
 
 function createId() {
@@ -53,18 +61,29 @@ function buildHabitFromInput(input: HabitInput, order: number): Habit {
   };
 }
 
-const defaultSettings = {
+function normalizePersistedHabits(habits: Habit[]) {
+  return habits.map((habit) => ({
+    ...habit,
+    schedule: normalizeHabitSchedule(habit.schedule),
+    archivedAt: habit.archivedAt ?? null,
+  }));
+}
+
+const defaultSettings: AppSettings = {
   username: "user",
   planLabel: "local",
   machineName: "checkpoint",
   dailyGoalPercentage: 60,
-  theme: "terminal" as const,
+  theme: "terminal",
   hasCompletedOnboarding: false,
+  shieldCount: 0,
+  shieldAwardedMilestones: 0,
 };
 
 const defaultState = {
-  habits: seedHabits,
-  completions: [],
+  habits: normalizePersistedHabits(seedHabits),
+  completions: [] as HabitCompletion[],
+  shieldUses: [] as ShieldUse[],
   settings: defaultSettings,
 };
 
@@ -125,6 +144,8 @@ export const useCheckpointStore = create<CheckpointState>()(
             ),
           };
         });
+
+        get().syncShieldRewards();
       },
 
       archiveHabit: (habitId: string) => {
@@ -160,6 +181,8 @@ export const useCheckpointStore = create<CheckpointState>()(
             (completion) => completion.habitId !== habitId,
           ),
         }));
+
+        get().syncShieldRewards();
       },
 
       moveHabit: (habitId: string, direction: "up" | "down") => {
@@ -230,6 +253,7 @@ export const useCheckpointStore = create<CheckpointState>()(
         set(() => ({
           habits: nextHabits,
           completions: [],
+          shieldUses: [],
           settings: {
             username: input.username.trim() || "user",
             planLabel: input.planLabel.trim() || "local",
@@ -240,6 +264,8 @@ export const useCheckpointStore = create<CheckpointState>()(
             ),
             theme: input.theme,
             hasCompletedOnboarding: true,
+            shieldCount: 0,
+            shieldAwardedMilestones: 0,
           },
         }));
       },
@@ -297,30 +323,36 @@ export const useCheckpointStore = create<CheckpointState>()(
             theme: input.theme,
           },
         }));
+
+        get().syncShieldRewards();
       },
 
       resetAppData: () => {
         set(() => ({
-          habits: seedHabits,
+          habits: normalizePersistedHabits(seedHabits),
           completions: [],
+          shieldUses: [],
           settings: defaultSettings,
         }));
       },
 
       importBackup: (backup: CheckpointBackup) => {
         set(() => ({
-          habits: backup.habits.map((habit) => ({
-            ...habit,
-            schedule: normalizeHabitSchedule(habit.schedule),
-          })),
+          habits: normalizePersistedHabits(backup.habits),
           completions: backup.completions,
+          shieldUses: backup.shieldUses ?? [],
           settings: {
             ...defaultSettings,
             ...backup.settings,
             hasCompletedOnboarding:
               backup.settings.hasCompletedOnboarding ?? true,
+            shieldCount: backup.settings.shieldCount ?? 0,
+            shieldAwardedMilestones:
+              backup.settings.shieldAwardedMilestones ?? 0,
           },
         }));
+
+        get().syncShieldRewards();
       },
 
       getCompletion: (habitId, date) => {
@@ -350,6 +382,7 @@ export const useCheckpointStore = create<CheckpointState>()(
             ),
           }));
 
+          get().syncShieldRewards();
           return;
         }
 
@@ -365,6 +398,8 @@ export const useCheckpointStore = create<CheckpointState>()(
         set((state) => ({
           completions: [...state.completions, newCompletion],
         }));
+
+        get().syncShieldRewards();
       },
 
       adjustHabitValue: (habitId, date, delta) => {
@@ -376,12 +411,12 @@ export const useCheckpointStore = create<CheckpointState>()(
 
       setHabitNote: (habitId, date, note) => {
         const cleanNote = note.trim();
-        const exiting = get().getCompletion(habitId, date);
+        const existing = get().getCompletion(habitId, date);
 
-        if (exiting) {
+        if (existing) {
           set((state) => ({
             completions: state.completions.map((completion) =>
-              completion.id === exiting.id
+              completion.id === existing.id
                 ? {
                     ...completion,
                     note: cleanNote || undefined,
@@ -419,6 +454,73 @@ export const useCheckpointStore = create<CheckpointState>()(
         get().setHabitValue(habitId, date, currentCompleted ? 0 : 1);
       },
 
+      syncShieldRewards: () => {
+        const state = get();
+
+        const goalDayCount = getGoalDayCount(
+          state.habits,
+          state.completions,
+          state.settings.dailyGoalPercentage,
+        );
+
+        const earnedMilestones = getShieldMilestonesEarned(goalDayCount);
+
+        const newMilestones =
+          earnedMilestones - state.settings.shieldAwardedMilestones;
+
+        if (newMilestones <= 0) {
+          return;
+        }
+
+        set((current) => ({
+          settings: {
+            ...current.settings,
+            shieldCount: Math.min(
+              MAX_SHIELDS,
+              current.settings.shieldCount + newMilestones,
+            ),
+            shieldAwardedMilestones: earnedMilestones,
+          },
+        }));
+      },
+
+      isDateShielded: (date) => {
+        return get().shieldUses.some((shieldUse) => shieldUse.date === date);
+      },
+
+      useShield: (date) => {
+        const state = get();
+
+        const allowed = canUseShieldOnDate({
+          shieldCount: state.settings.shieldCount,
+          shieldUses: state.shieldUses,
+          habits: state.habits,
+          completions: state.completions,
+          date,
+          dailyGoalPercentage: state.settings.dailyGoalPercentage,
+        });
+
+        if (!allowed) {
+          return false;
+        }
+
+        const newShieldUse: ShieldUse = {
+          id: createId(),
+          date,
+          usedAt: new Date().toISOString(),
+        };
+
+        set((current) => ({
+          shieldUses: [...current.shieldUses, newShieldUse],
+          settings: {
+            ...current.settings,
+            shieldCount: Math.max(0, current.settings.shieldCount - 1),
+          },
+        }));
+
+        return true;
+      },
+
       getDailyProgress: (date) => {
         const dueHabits = getDueHabits(get().habits, parseISO(date));
 
@@ -446,17 +548,19 @@ export const useCheckpointStore = create<CheckpointState>()(
 
         return {
           ...current,
-          habits:
-            persistedState?.habits?.map((habit) => ({
-              ...habit,
-              schedule: normalizeHabitSchedule(habit.schedule),
-            })) ?? current.habits,
+          habits: persistedState?.habits
+            ? normalizePersistedHabits(persistedState.habits)
+            : current.habits,
           completions: persistedState?.completions ?? current.completions,
+          shieldUses: persistedState?.shieldUses ?? current.shieldUses,
           settings: {
             ...current.settings,
             ...persistedState?.settings,
             hasCompletedOnboarding:
               persistedState?.settings?.hasCompletedOnboarding ?? false,
+            shieldCount: persistedState?.settings?.shieldCount ?? 0,
+            shieldAwardedMilestones:
+              persistedState?.settings?.shieldAwardedMilestones ?? 0,
           },
         };
       },

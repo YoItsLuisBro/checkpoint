@@ -50,6 +50,7 @@ export default function ProfilePage({
   const updateSettings = useCheckpointStore((state) => state.updateSettings);
   const resetAppData = useCheckpointStore((state) => state.resetAppData);
   const importBackup = useCheckpointStore((state) => state.importBackup);
+  const shieldUses = useCheckpointStore((state) => state.shieldUses);
 
   const [form, setForm] = useState<SettingsInput>({
     username: settings.username,
@@ -75,6 +76,7 @@ export default function ProfilePage({
       habits,
       completions,
       settings,
+      shieldUses,
     };
 
     const blob = new Blob([JSON.stringify(backup, null, 2)], {
@@ -370,6 +372,9 @@ export default function ProfilePage({
           <p>
             storage: <span className="text-emerald-400">localStorage</span>
           </p>
+
+          <p>shield uses: {shieldUses.length}</p>
+          <p>shields held: {settings.shieldCount}/3</p>
         </div>
       </section>
 

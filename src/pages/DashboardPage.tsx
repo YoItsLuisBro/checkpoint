@@ -16,11 +16,13 @@ import { useCheckpointStore } from "../store/useCheckpointStore";
 import { getDueHabits } from "../lib/schedules";
 import type { Habit, HabitCategory } from "../types/checkpoint";
 
+import ShieldPanel from "../components/dashboard/ShieldPanel";
+import { canUseShieldOnDate, MAX_SHIELDS } from "../lib/shields";
+
 import {
   getDailyGoalStreak,
   getDayProgressPercent,
   getHabitCurrentStreak,
-  getPerfectDaysThisWeek,
   getWeeklyTargetProgress,
   toDateKey,
 } from "../lib/streaks";
@@ -66,6 +68,9 @@ export default function DashboardPage({
   const habits = useCheckpointStore((state) => state.habits);
   const completions = useCheckpointStore((state) => state.completions);
   const settings = useCheckpointStore((state) => state.settings);
+  const shieldUses = useCheckpointStore((state) => state.shieldUses);
+  const useShieldOnDate = useCheckpointStore((state) => state.useShield);
+  const isDateShielded = useCheckpointStore((state) => state.isDateShielded);
   const toggleHabit = useCheckpointStore((state) => state.toggleHabit);
   const adjustHabitValue = useCheckpointStore(
     (state) => state.adjustHabitValue,
@@ -130,9 +135,10 @@ export default function DashboardPage({
     completions,
     selectedDate,
     settings.dailyGoalPercentage,
+    shieldUses,
   );
 
-  const shieldCount = getPerfectDaysThisWeek(habits, completions, selectedDate);
+  const shieldCount = settings.shieldCount;
 
   const getHabitStreak = (habitId: string) => {
     const habit = habits.find((item) => item.id === habitId);
@@ -163,6 +169,30 @@ export default function DashboardPage({
     day: [],
     night: [],
   };
+
+  const selectedDateShielded = isDateShielded(selectedDateKey);
+
+  const canUseShieldToday = canUseShieldOnDate({
+    shieldCount: settings.shieldCount,
+    shieldUses,
+    habits,
+    completions,
+    date: selectedDateKey,
+    dailyGoalPercentage: settings.dailyGoalPercentage,
+  });
+
+  function handleUseShield() {
+    const confirmed = window.confirm(
+      `Use 1 shield to protect ${selectedDateKey}?`,
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    useShieldOnDate(selectedDateKey);
+  }
 
   dueHabits
     .slice()
@@ -280,6 +310,16 @@ export default function DashboardPage({
         total={progress.total}
         percent={progress.percent}
         goal={settings.dailyGoalPercentage}
+      />
+
+      <ShieldPanel
+        shieldCount={settings.shieldCount}
+        maxShields={MAX_SHIELDS}
+        currentPercent={progress.percent}
+        goalPercent={settings.dailyGoalPercentage}
+        isShielded={selectedDateShielded}
+        canUseShield={canUseShieldToday}
+        onUseShield={handleUseShield}
       />
 
       <footer className="mt-8 border-t border-(--cp-border) pt-5 text-xl">

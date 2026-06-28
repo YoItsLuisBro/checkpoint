@@ -48,6 +48,8 @@ export type AppSettings = {
   dailyGoalPercentage: number;
   theme: AppTheme;
   hasCompletedOnboarding: boolean;
+  shieldCount: number;
+  shieldAwardedMilestones: number;
 };
 
 export type HabitInput = {
@@ -82,12 +84,20 @@ export type CheckpointBackup = {
   exportedAt: string;
   habits: Habit[];
   completions: HabitCompletion[];
+  shieldUses?: ShieldUse[];
   settings: AppSettings;
+};
+
+export type ShieldUse = {
+  id: string;
+  date: string;
+  usedAt: string;
 };
 
 export type CheckpointState = {
   habits: Habit[];
   completions: HabitCompletion[];
+  shieldUses: ShieldUse[];
   settings: AppSettings;
 
   addHabit: (input: HabitInput) => void;
@@ -109,6 +119,10 @@ export type CheckpointState = {
   setHabitValue: (habitId: string, date: string, value: number) => void;
   adjustHabitValue: (habitId: string, date: string, delta: number) => void;
   setHabitNote: (habitId: string, date: string, note: string) => void;
+
+  useShield: (date: string) => boolean;
+  isDateShielded: (date: string) => boolean;
+  syncShieldRewards: () => void;
 
   getCompletion: (habitId: string, date: string) => HabitCompletion | undefined;
   getDailyProgress: (date: string) => {

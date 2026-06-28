@@ -40,6 +40,7 @@ export default function StatsPage({
   const habits = useCheckpointStore((state) => state.habits);
   const completions = useCheckpointStore((state) => state.completions);
   const settings = useCheckpointStore((state) => state.settings);
+  const shieldUses = useCheckpointStore((state) => state.shieldUses);
 
   const activeHabits = useMemo(() => {
     return habits.filter((habit) => !habit.archivedAt);
@@ -89,6 +90,7 @@ export default function StatsPage({
       completions,
       today,
       settings.dailyGoalPercentage,
+      shieldUses,
     );
 
     const perfectDaysThisWeek = getPerfectDaysThisWeek(
@@ -122,7 +124,14 @@ export default function StatsPage({
       perfectDaysThisWeek,
       habitStats,
     };
-  }, [activeHabits, habits, completions, settings.dailyGoalPercentage, today]);
+  }, [
+    activeHabits,
+    habits,
+    completions,
+    settings.dailyGoalPercentage,
+    today,
+    shieldUses,
+  ]);
 
   return (
     <TerminalShell>
@@ -190,6 +199,13 @@ export default function StatsPage({
           label="logs"
           value={String(stats.completedLogs)}
           accent="text-[var(--cp-info)]"
+        />
+
+        <StatCard
+          label="shields"
+          value={`${settings.shieldCount}/3`}
+          icon="🛡"
+          accent="text-[var(--cp-accent)]"
         />
       </section>
 

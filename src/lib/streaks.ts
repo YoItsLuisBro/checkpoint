@@ -7,7 +7,7 @@ import {
   subDays,
   subWeeks,
 } from "date-fns";
-import type { Habit, HabitCompletion } from "../types/checkpoint";
+import type { Habit, HabitCompletion, ShieldUse } from "../types/checkpoint";
 import {
   getDueHabits,
   isHabitDueOnDate,
@@ -84,6 +84,10 @@ function isHabitCompleteForProgress(
   }
 
   return isHabitCompletedOnDate(completions, habit.id, dateKey);
+}
+
+function isDateProtectedByShield(shieldUses: ShieldUse[], dateKey: string) {
+  return shieldUses.some((shieldUse) => shieldUse.date === dateKey);
 }
 
 export function getHabitCurrentStreak(
@@ -168,6 +172,7 @@ export function getDailyGoalStreak(
   completions: HabitCompletion[],
   selectedDate: Date,
   dailyGoalPercentage: number,
+  shieldUses: ShieldUse[] = [],
 ) {
   let streak = 0;
   let cursor = selectedDate;
@@ -178,7 +183,10 @@ export function getDailyGoalStreak(
     const progress = getDayProgressPercent(habits, completions, dateKey);
 
     if (progress.total > 0) {
-      if (progress.percent < dailyGoalPercentage) {
+      const goalMet = progress.percent >= dailyGoalPercentage;
+      const shielded = isDateProtectedByShield(shieldUses, dateKey);
+
+      if (!goalMet && !shielded) {
         break;
       }
 
