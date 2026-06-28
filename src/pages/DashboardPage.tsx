@@ -211,7 +211,7 @@ export default function DashboardPage({
     <TerminalShell>
       <TopNav activeView={activeView} onChangeView={onChangeView} />
 
-      <TerminalHeader settings={settings} />
+      <TerminalHeader />
 
       <section className="mt-8 space-y-3">
         <div className="flex items-center gap-2 text-xl font-semibold">
