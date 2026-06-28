@@ -2,6 +2,7 @@ import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { Download, RotateCcw, Save, Upload } from "lucide-react";
 
 import TerminalShell from "../components/layout/TerminalShell";
+import InstallAppPanel from "../components/profile/InstallAppPanel";
 import TopNav, { type AppView } from "../components/layout/TopNav";
 import { useCheckpointStore } from "../store/useCheckpointStore";
 import type {
@@ -194,6 +195,8 @@ export default function ProfilePage({
           [ok] {status}
         </div>
       )}
+
+      <InstallAppPanel />
 
       <section className="mt-8 border border-zinc-800 bg-zinc-950 p-4">
         <div className="mb-4">
