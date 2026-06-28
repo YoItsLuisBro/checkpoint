@@ -1,23 +1,22 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState } from "react";
 import {
-  addMonths,
   eachDayOfInterval,
   format,
   startOfWeek,
-  endOfWeek,
   subDays,
   subMonths,
+  addMonths,
 } from "date-fns";
-import { Flame, Shield, Activity, CheckCircle2 } from "lucide-react";
 
 import TerminalShell from "../components/layout/TerminalShell";
 import TopNav, { type AppView } from "../components/layout/TopNav";
-import MonthlyHeatmap from "../components/stats/MonthlyHeatMap";
-import YearHeatmap from "../components/stats/YearHeatMap";
-import WeeklyReport from "../components/stats/WeeklyReport";
 import EmptyState from "../components/ui/EmptyState";
+import MonthlyHeatmap from "../components/stats/MonthlyHeatMap";
+import WeeklyReport from "../components/stats/WeeklyReport";
+import YearHeatmap from "../components/stats/YearHeatMap";
+import HabitDetailPanel from "../components/stats/HabitDetailPanel";
 
-import { useCheckpointStore } from "../store/useCheckpointStore";
+import { getScheduleLabel } from "../lib/schedules";
 import {
   getDailyGoalStreak,
   getDayProgressPercent,
@@ -26,18 +25,46 @@ import {
   toDateKey,
 } from "../lib/streaks";
 
+import { useCheckpointStore } from "../store/useCheckpointStore";
+
 type StatsPageProps = {
   activeView: AppView;
   onChangeView: (view: AppView) => void;
 };
+
+type StatCardProps = {
+  label: string;
+  value: string;
+  icon: string;
+  accent: string;
+};
+
+function StatCard({ label, value, icon, accent }: StatCardProps) {
+  return (
+    <article className="border border-(--cp-border) bg-(--cp-panel) p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm text-(--cp-muted)">{label}</p>
+          <p className="mt-2 text-3xl font-bold text-(--cp-text)">
+            {value}
+          </p>
+        </div>
+
+        <span className={`text-2xl ${accent}`}>{icon}</span>
+      </div>
+    </article>
+  );
+}
 
 export default function StatsPage({
   activeView,
   onChangeView,
 }: StatsPageProps) {
   const today = useMemo(() => new Date(), []);
+
   const [selectedMonth, setSelectedMonth] = useState(() => new Date());
   const [selectedYear, setSelectedYear] = useState(() => new Date());
+  const [selectedHabitId, setSelectedHabitId] = useState<string | null>(null);
 
   const habits = useCheckpointStore((state) => state.habits);
   const completions = useCheckpointStore((state) => state.completions);
@@ -45,50 +72,75 @@ export default function StatsPage({
   const shieldUses = useCheckpointStore((state) => state.shieldUses);
 
   const activeHabits = useMemo(() => {
-    return habits.filter((habit) => !habit.archivedAt);
+    return habits
+      .filter((habit) => !habit.archivedAt)
+      .slice()
+      .sort((a, b) => a.order - b.order);
   }, [habits]);
 
-  const stats = useMemo(() => {
-    const weekDays = eachDayOfInterval({
-      start: startOfWeek(today, { weekStartsOn: 1 }),
-      end: endOfWeek(today, { weekStartsOn: 1 }),
-    });
+  const selectedHabit = useMemo(() => {
+    if (!selectedHabitId) {
+      return undefined;
+    }
 
-    const last30Days = eachDayOfInterval({
-      start: subDays(today, 29),
-      end: today,
+    return activeHabits.find((habit) => habit.id === selectedHabitId);
+  }, [activeHabits, selectedHabitId]);
+
+  const stats = useMemo(() => {
+    const weekStart = startOfWeek(today, { weekStartsOn: 1 });
+
+    const weekDays = eachDayOfInterval({
+      start: weekStart,
+      end: subDays(weekStart, -6),
     });
 
     const weekProgress = weekDays.map((day) => {
       const dateKey = toDateKey(day);
-      const progress = getDayProgressPercent(habits, completions, dateKey);
+      const progress = getDayProgressPercent(
+        activeHabits,
+        completions,
+        dateKey,
+      );
 
       return {
         date: day,
         dateKey,
+        label: format(day, "EEE"),
         ...progress,
       };
     });
 
-    const thirtyDayProgress = last30Days.map((day) => {
+    const last30Days = Array.from({ length: 30 }, (_, index) => {
+      const day = subDays(today, 29 - index);
       const dateKey = toDateKey(day);
-      return getDayProgressPercent(habits, completions, dateKey);
+
+      return {
+        date: day,
+        dateKey,
+        ...getDayProgressPercent(activeHabits, completions, dateKey),
+      };
     });
 
-    const completedLogs = completions.filter(
-      (completion) => completion.completed,
-    ).length;
+    const activeLast30Days = last30Days.filter((day) => day.total > 0);
 
-    const thirtyDayAverage =
-      thirtyDayProgress.length === 0
+    const average30 =
+      activeLast30Days.length === 0
         ? 0
         : Math.round(
-            thirtyDayProgress.reduce((sum, day) => sum + day.percent, 0) /
-              thirtyDayProgress.length,
+            activeLast30Days.reduce((sum, day) => sum + day.percent, 0) /
+              activeLast30Days.length,
           );
 
+    const completedLogs = completions.filter((completion) => {
+      if (!completion.completed) {
+        return false;
+      }
+
+      return activeHabits.some((habit) => habit.id === completion.habitId);
+    }).length;
+
     const dailyStreak = getDailyGoalStreak(
-      habits,
+      activeHabits,
       completions,
       today,
       settings.dailyGoalPercentage,
@@ -96,31 +148,39 @@ export default function StatsPage({
     );
 
     const perfectDaysThisWeek = getPerfectDaysThisWeek(
-      habits,
+      activeHabits,
       completions,
       today,
     );
 
     const habitStats = activeHabits
       .map((habit) => {
-        const currentStreak = getHabitCurrentStreak(habit, completions, today);
-
-        const completionsForHabit = completions.filter(
+        const habitCompletions = completions.filter(
           (completion) =>
             completion.habitId === habit.id && completion.completed,
-        ).length;
+        );
 
         return {
           habit,
-          currentStreak,
-          completionsForHabit,
+          streak: getHabitCurrentStreak(habit, completions, today),
+          totalCompletions: habitCompletions.length,
+          lastCompletedDate:
+            habitCompletions
+              .slice()
+              .sort((a, b) => b.date.localeCompare(a.date))[0]?.date ?? "never",
         };
       })
-      .sort((a, b) => b.currentStreak - a.currentStreak);
+      .sort((a, b) => {
+        if (b.streak !== a.streak) {
+          return b.streak - a.streak;
+        }
+
+        return b.totalCompletions - a.totalCompletions;
+      });
 
     return {
       weekProgress,
-      thirtyDayAverage,
+      average30,
       completedLogs,
       dailyStreak,
       perfectDaysThisWeek,
@@ -128,10 +188,9 @@ export default function StatsPage({
     };
   }, [
     activeHabits,
-    habits,
     completions,
-    settings.dailyGoalPercentage,
     today,
+    settings.dailyGoalPercentage,
     shieldUses,
   ]);
 
@@ -139,243 +198,245 @@ export default function StatsPage({
     <TerminalShell>
       <TopNav activeView={activeView} onChangeView={onChangeView} />
 
-      <header className="space-y-2">
-        <h1 className="text-[22px] leading-none tracking-tight">
-          <span className="text-(--cp-accent)">checkpoint</span>
-          <span className="text-(--cp-warn)">[local]</span>
-          <span className="text-(--cp-info)">@stats</span>{" "}
-          <span className="text-(--cp-accent)">#</span>{" "}
-          <span className="text-(--cp-text)">report</span>
-        </h1>
+      <header className="mt-6">
+        <p className="text-sm text-(--cp-muted)">$ checkpoint stats</p>
 
-        <p className="text-lg leading-tight text-(--cp-muted)">
-          // your behavior leaves logs.
-          <br />
-          read them honestly.
-        </p>
+        <div className="mt-3 flex items-end justify-between gap-3">
+          <div>
+            <h1 className="text-4xl font-bold leading-none tracking-tight text-(--cp-text)">
+              stats
+            </h1>
+
+            <p className="mt-2 text-sm text-(--cp-muted)">
+              // streaks, reports, heatmaps, and habit performance
+            </p>
+          </div>
+
+          <div className="border border-(--cp-border) bg-(--cp-panel) px-3 py-2 text-right">
+            <p className="text-xs text-(--cp-muted)">goal</p>
+            <p className="text-xl text-(--cp-accent)">
+              {settings.dailyGoalPercentage}%
+            </p>
+          </div>
+        </div>
       </header>
 
-      {activeHabits.length === 0 && (
-        <div className="mt-8">
-          <EmptyState
-            command="$ stats"
-            title="no active habits"
-            message="stats need active habits before CHECKPOINT can generate reports."
-            action={
-              <button
-                type="button"
-                onClick={() => onChangeView("habits")}
-                className="border border-(--cp-accent) bg-(--cp-accent) px-4 py-3 text-sm font-bold text-(--cp-accent-contrast)"
-              >
-                open habit editor
-              </button>
+      {selectedHabit ? (
+        <HabitDetailPanel
+          habit={selectedHabit}
+          completions={completions}
+          today={today}
+          onBack={() => setSelectedHabitId(null)}
+        />
+      ) : (
+        <>
+          {activeHabits.length === 0 && (
+            <div className="mt-8">
+              <EmptyState
+                command="$ stats"
+                title="no active habits"
+                message="stats need active habits before CHECKPOINT can generate reports."
+                action={
+                  <button
+                    type="button"
+                    onClick={() => onChangeView("habits")}
+                    className="border border-(--cp-accent) bg-(--cp-accent) px-4 py-3 text-sm font-bold text-(--cp-accent-contrast)"
+                  >
+                    open habit editor
+                  </button>
+                }
+              />
+            </div>
+          )}
+
+          <YearHeatmap
+            selectedYear={selectedYear}
+            habits={activeHabits}
+            completions={completions}
+            shieldUses={shieldUses}
+            goalPercentage={settings.dailyGoalPercentage}
+            onPreviousYear={() =>
+              setSelectedYear(
+                (current) => new Date(current.getFullYear() - 1, 0, 1),
+              )
+            }
+            onNextYear={() =>
+              setSelectedYear(
+                (current) => new Date(current.getFullYear() + 1, 0, 1),
+              )
             }
           />
-        </div>
-      )}
 
-      <section className="mt-8 grid grid-cols-2 gap-3">
-        <StatCard
-          icon={<Flame size={18} />}
-          label="daily streak"
-          value={`${stats.dailyStreak}d`}
-          accent="text-[var(--cp-accent)]"
-        />
-
-        <StatCard
-          icon={<Shield size={18} />}
-          label="perfect week"
-          value={String(stats.perfectDaysThisWeek)}
-          accent="text-[var(--cp-info)]"
-        />
-
-        <StatCard
-          icon={<Activity size={18} />}
-          label="30d avg"
-          value={`${stats.thirtyDayAverage}%`}
-          accent="text-[var(--cp-warn)]"
-        />
-
-        <StatCard
-          icon={<CheckCircle2 size={18} />}
-          label="logs"
-          value={String(stats.completedLogs)}
-          accent="text-[var(--cp-info)]"
-        />
-
-        <StatCard
-          label="shields"
-          value={`${settings.shieldCount}/3`}
-          icon="🛡"
-          accent="text-[var(--cp-accent)]"
-        />
-      </section>
-
-      <YearHeatmap
-        selectedYear={selectedYear}
-        habits={activeHabits}
-        completions={completions}
-        shieldUses={shieldUses}
-        goalPercentage={settings.dailyGoalPercentage}
-        onPreviousYear={() =>
-          setSelectedYear(
-            (current) => new Date(current.getFullYear() - 1, 0, 1),
-          )
-        }
-        onNextYear={() =>
-          setSelectedYear(
-            (current) => new Date(current.getFullYear() + 1, 0, 1),
-          )
-        }
-      />
-
-      <MonthlyHeatmap
-        selectedMonth={selectedMonth}
-        habits={habits}
-        completions={completions}
-        goalPercentage={settings.dailyGoalPercentage}
-        onPreviousMonth={() =>
-          setSelectedMonth((currentMonth) => subMonths(currentMonth, 1))
-        }
-        onNextMonth={() =>
-          setSelectedMonth((currentMonth) => addMonths(currentMonth, 1))
-        }
-      />
-
-      <WeeklyReport
-        selectedDate={today}
-        habits={habits}
-        completions={completions}
-        goalPercentage={settings.dailyGoalPercentage}
-      />
-
-      <section className="mt-8 border-b border-(--cp-border) pb-6">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-(--cp-accent)">$ week</h2>
-          <span className="text-(--cp-muted)">
-            goal {settings.dailyGoalPercentage}%
-          </span>
-        </div>
-
-        <div className="space-y-3">
-          {stats.weekProgress.map((day) => {
-            const metGoal = day.percent >= settings.dailyGoalPercentage;
-
-            return (
-              <div
-                key={day.dateKey}
-                className="grid grid-cols-[64px_1fr_56px] items-center gap-3"
-              >
-                <span
-                  className={
-                    metGoal ? "text-(--cp-accent)" : "text-(--cp-muted)"
-                  }
-                >
-                  {format(day.date, "EEE")}
-                </span>
-
-                <div className="cp-dot-bg h-4 border border-(--cp-border)">
-                  <div
-                    className={[
-                      "h-full transition-all",
-                      metGoal ? "bg-(--cp-accent)" : "bg-(--cp-dim)",
-                    ].join(" ")}
-                    style={{ width: `${day.percent}%` }}
-                  />
-                </div>
-
-                <span
-                  className={[
-                    "text-right",
-                    metGoal ? "text-(--cp-accent)" : "text-(--cp-muted)",
-                  ].join(" ")}
-                >
-                  {day.percent}%
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      <section className="mt-8 flex-1 space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-(--cp-accent)">$ habits</h2>
-          <span className="text-(--cp-muted)">sorted by streak</span>
-        </div>
-
-        {stats.habitStats.length === 0 ? (
-          <EmptyState
-            command="$ habits --stats"
-            title="no habit stats"
-            message="complete a habit to start generating per-habit streak data."
+          <MonthlyHeatmap
+            selectedMonth={selectedMonth}
+            habits={activeHabits}
+            completions={completions}
+            goalPercentage={settings.dailyGoalPercentage}
+            onPreviousMonth={() =>
+              setSelectedMonth((current) => subMonths(current, 1))
+            }
+            onNextMonth={() =>
+              setSelectedMonth((current) => addMonths(current, 1))
+            }
           />
-        ) : (
-          <div className="space-y-3">
-            {stats.habitStats.map(
-              ({ habit, currentStreak, completionsForHabit }) => (
-                <article key={habit.id} className="cp-panel p-3">
-                  <div className="grid grid-cols-[1fr_auto] items-center gap-3">
-                    <div className="min-w-0">
-                      <p className="truncate text-xl text-(--cp-text)">
-                        <span className="mr-2 text-(--cp-muted)">
-                          {habit.icon}
-                        </span>
-                        {habit.name}
-                      </p>
 
-                      <p className="mt-1 text-sm text-(--cp-muted)">
-                        logs: {completionsForHabit} · routine: {habit.category}
-                      </p>
-                    </div>
+          <WeeklyReport
+            habits={activeHabits}
+            completions={completions}
+            selectedDate={today}
+            goalPercentage={settings.dailyGoalPercentage}
+          />
 
-                    <div
-                      className={[
-                        "inline-flex items-center gap-1 text-xl",
-                        currentStreak > 0
-                          ? "text-(--cp-accent)"
-                          : "text-(--cp-muted)",
-                      ].join(" ")}
-                    >
-                      <Flame size={18} />
-                      {currentStreak}
-                    </div>
-                  </div>
+          <section className="mt-8 border-b border-(--cp-border) pb-6">
+            <div className="mb-4">
+              <h2 className="text-xl text-(--cp-accent)">$ summary</h2>
+              <p className="mt-1 text-sm text-(--cp-muted)">
+                // current performance snapshot
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <StatCard
+                label="daily streak"
+                value={String(stats.dailyStreak)}
+                icon="🔥"
+                accent="text-[var(--cp-accent)]"
+              />
+
+              <StatCard
+                label="30d avg"
+                value={`${stats.average30}%`}
+                icon="▦"
+                accent="text-[var(--cp-info)]"
+              />
+
+              <StatCard
+                label="logs"
+                value={String(stats.completedLogs)}
+                icon="✓"
+                accent="text-[var(--cp-accent)]"
+              />
+
+              <StatCard
+                label="perfect week"
+                value={`${stats.perfectDaysThisWeek}/7`}
+                icon="★"
+                accent="text-[var(--cp-warn)]"
+              />
+
+              <StatCard
+                label="shields"
+                value={`${settings.shieldCount}/3`}
+                icon="🛡"
+                accent="text-[var(--cp-accent)]"
+              />
+            </div>
+          </section>
+
+          <section className="mt-8 border-b border-(--cp-border) pb-6">
+            <div className="mb-4">
+              <h2 className="text-xl text-(--cp-accent)">$ week</h2>
+              <p className="mt-1 text-sm text-(--cp-muted)">
+                // daily goal progress this week
+              </p>
+            </div>
+
+            <div className="grid grid-cols-7 gap-2">
+              {stats.weekProgress.map((day) => (
+                <article
+                  key={day.dateKey}
+                  className={[
+                    "border p-2 text-center",
+                    day.percent >= settings.dailyGoalPercentage
+                      ? "border-(--cp-accent) bg-(--cp-accent-soft)"
+                      : "border-(--cp-border) bg-(--cp-panel)",
+                  ].join(" ")}
+                  title={`${day.dateKey}: ${day.percent}%`}
+                >
+                  <p className="text-xs text-(--cp-muted)">{day.label}</p>
+
+                  <p
+                    className={[
+                      "mt-2 text-sm",
+                      day.percent >= settings.dailyGoalPercentage
+                        ? "text-(--cp-accent)"
+                        : "text-(--cp-text)",
+                    ].join(" ")}
+                  >
+                    {day.percent}%
+                  </p>
                 </article>
-              ),
+              ))}
+            </div>
+          </section>
+
+          <section className="mt-8">
+            <div className="mb-4">
+              <h2 className="text-xl text-(--cp-accent)">
+                $ habit streaks
+              </h2>
+              <p className="mt-1 text-sm text-(--cp-muted)">
+                // tap a habit to inspect deeper stats
+              </p>
+            </div>
+
+            {stats.habitStats.length === 0 ? (
+              <EmptyState
+                command="$ habits --stats"
+                title="no habit stats"
+                message="complete a habit to start generating per-habit streak data."
+              />
+            ) : (
+              <div className="space-y-3">
+                {stats.habitStats.map((habitStat) => (
+                  <button
+                    key={habitStat.habit.id}
+                    type="button"
+                    onClick={() => setSelectedHabitId(habitStat.habit.id)}
+                    className="w-full border border-(--cp-border) bg-(--cp-panel) p-3 text-left"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-lg text-(--cp-text)">
+                          <span className="mr-2 text-(--cp-muted)">
+                            {habitStat.habit.icon}
+                          </span>
+                          {habitStat.habit.name}
+                        </p>
+
+                        <p className="mt-1 text-sm text-(--cp-muted)">
+                          {habitStat.habit.category} · {habitStat.habit.mode} ·{" "}
+                          {getScheduleLabel(habitStat.habit.schedule)}
+                        </p>
+
+                        <p className="mt-1 text-xs text-(--cp-muted)">
+                          logs: {habitStat.totalCompletions} · last:{" "}
+                          {habitStat.lastCompletedDate}
+                        </p>
+                      </div>
+
+                      <span
+                        className={[
+                          "shrink-0 text-xl",
+                          habitStat.streak > 0
+                            ? "text-(--cp-accent)"
+                            : "text-(--cp-muted)",
+                        ].join(" ")}
+                      >
+                        🔥 {habitStat.streak}
+                      </span>
+                    </div>
+
+                    <p className="mt-3 text-xs text-(--cp-muted)">
+                      tap to inspect →
+                    </p>
+                  </button>
+                ))}
+              </div>
             )}
-          </div>
-        )}
-      </section>
-
-      <footer className="mt-8 border-t border-(--cp-border) pt-5 text-xl">
-        <div className="flex items-center justify-between">
-          <span>
-            [<span className="text-(--cp-accent)">✓</span>] stats
-          </span>
-          <span className="text-(--cp-muted)">local-report</span>
-        </div>
-      </footer>
+          </section>
+        </>
+      )}
     </TerminalShell>
-  );
-}
-
-type StatCardProps = {
-  icon: ReactNode;
-  label: string;
-  value: string;
-  accent: string;
-};
-
-function StatCard({ icon, label, value, accent }: StatCardProps) {
-  return (
-    <article className="cp-panel p-3">
-      <div className={`mb-3 inline-flex items-center gap-2 ${accent}`}>
-        {icon}
-        <span className="text-sm">{label}</span>
-      </div>
-
-      <p className="text-3xl font-bold text-(--cp-text)">{value}</p>
-    </article>
   );
 }
