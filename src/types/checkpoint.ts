@@ -38,6 +38,7 @@ export type HabitCompletion = {
   value: number;
   completed: boolean;
   completedAt: string;
+  note?: string;
 };
 
 export type AppSettings = {
@@ -107,6 +108,7 @@ export type CheckpointState = {
   toggleHabit: (habitId: string, date: string) => void;
   setHabitValue: (habitId: string, date: string, value: number) => void;
   adjustHabitValue: (habitId: string, date: string, delta: number) => void;
+  setHabitNote: (habitId: string, date: string, note: string) => void;
 
   getCompletion: (habitId: string, date: string) => HabitCompletion | undefined;
   getDailyProgress: (date: string) => {

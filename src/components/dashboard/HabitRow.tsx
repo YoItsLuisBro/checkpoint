@@ -1,4 +1,4 @@
-import { Flame, Minus, Plus } from "lucide-react";
+import { Flame, Minus, Plus, StickyNote } from "lucide-react";
 import type { Habit, HabitCompletion } from "../../types/checkpoint";
 
 type HabitRowProps = {
@@ -6,9 +6,10 @@ type HabitRowProps = {
   completion?: HabitCompletion;
   isDone: boolean;
   streak: number;
+  weeklyTargetLabel?: string | null;
   onToggle: () => void;
   onAdjust: (delta: number) => void;
-  weeklyTargetLabel?: string | null;
+  onOpenNote: () => void;
 };
 
 export default function HabitRow({
@@ -19,49 +20,75 @@ export default function HabitRow({
   weeklyTargetLabel,
   onToggle,
   onAdjust,
+  onOpenNote,
 }: HabitRowProps) {
   const value = completion?.value ?? 0;
+  const note = completion?.note;
   const target = habit.target && habit.target > 0 ? habit.target : 1;
   const unit = habit.unit || (habit.mode === "timer" ? "min" : "");
   const step = habit.mode === "timer" ? 5 : 1;
 
+  const noteButtonClassName = [
+    "flex h-9 w-9 items-center justify-center border",
+    note
+      ? "border-[var(--cp-accent)] text-[var(--cp-accent)]"
+      : "border-[var(--cp-border)] text-[var(--cp-muted)]",
+  ].join(" ");
+
   if (habit.mode === "checkbox") {
     return (
-      <button
-        onClick={onToggle}
-        className="grid w-full grid-cols-[64px_1fr_64px] items-center gap-2 text-left text-xl"
-      >
-        <span className={isDone ? "text-(--cp-accent)" : "text-(--cp-text)"}>
-          [{isDone ? "✓" : " "}]
-        </span>
-
-        <span
-          className={[
-            "truncate",
-            isDone
-              ? "text-(--cp-muted) line-through decoration-(--cp-dim)"
-              : "text-(--cp-text)",
-          ].join(" ")}
+      <article className="grid grid-cols-[1fr_40px] items-center gap-2">
+        <button
+          type="button"
+          onClick={onToggle}
+          className="grid w-full grid-cols-[64px_1fr_64px] items-center gap-2 text-left text-xl"
         >
-          <span className="mr-2 text-(--cp-muted)">{habit.icon}</span>
-          {habit.name}
-          {weeklyTargetLabel && (
-            <span className="ml-2 text-sm text-(--cp-muted)">
-              [{weeklyTargetLabel}]
-            </span>
-          )}
-        </span>
+          <span
+            className={
+              isDone ? "text-(--cp-accent)" : "text-(--cp-text)"
+            }
+          >
+            [{isDone ? "✓" : " "}]
+          </span>
 
-        <span
-          className={[
-            "inline-flex items-center justify-end gap-1",
-            streak > 0 ? "text-(--cp-accent)" : "text-(--cp-muted)",
-          ].join(" ")}
+          <span
+            className={[
+              "truncate",
+              isDone
+                ? "text-(--cp-muted) line-through decoration-(--cp-dim)"
+                : "text-(--cp-text)",
+            ].join(" ")}
+          >
+            <span className="mr-2 text-(--cp-muted)">{habit.icon}</span>
+            {habit.name}
+            {weeklyTargetLabel && (
+              <span className="ml-2 text-sm text-(--cp-muted)">
+                [{weeklyTargetLabel}]
+              </span>
+            )}
+          </span>
+
+          <span
+            className={[
+              "inline-flex items-center justify-end gap-1",
+              streak > 0 ? "text-(--cp-accent)" : "text-(--cp-muted)",
+            ].join(" ")}
+          >
+            <Flame size={18} />
+            {streak}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={onOpenNote}
+          className={noteButtonClassName}
+          aria-label={`Open note for ${habit.name}`}
+          title={note ? "Note saved" : "Add note"}
         >
-          <Flame size={18} />
-          {streak}
-        </span>
-      </button>
+          <StickyNote size={16} />
+        </button>
+      </article>
     );
   }
 
@@ -93,15 +120,27 @@ export default function HabitRow({
           </p>
         </div>
 
-        <span
-          className={[
-            "inline-flex items-center justify-end gap-1 text-xl",
-            streak > 0 ? "text-(--cp-accent)" : "text-(--cp-muted)",
-          ].join(" ")}
-        >
-          <Flame size={18} />
-          {streak}
-        </span>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onOpenNote}
+            className={noteButtonClassName}
+            aria-label={`Open note for ${habit.name}`}
+            title={note ? "Note saved" : "Add note"}
+          >
+            <StickyNote size={16} />
+          </button>
+
+          <span
+            className={[
+              "inline-flex items-center justify-end gap-1 text-xl",
+              streak > 0 ? "text-(--cp-accent)" : "text-(--cp-muted)",
+            ].join(" ")}
+          >
+            <Flame size={18} />
+            {streak}
+          </span>
+        </div>
       </div>
 
       <div className="mt-3 grid grid-cols-[44px_1fr_44px] items-center gap-3">
@@ -114,7 +153,7 @@ export default function HabitRow({
           <Minus size={18} />
         </button>
 
-        <div className="h-4 overflow-hidden border border-(--cp-border) cp-dot-bg">
+        <div className="cp-dot-bg h-4 overflow-hidden border border-(--cp-border)">
           <div
             className="h-full bg-(--cp-accent) transition-all"
             style={{
@@ -132,6 +171,12 @@ export default function HabitRow({
           <Plus size={18} />
         </button>
       </div>
+
+      {note && (
+        <p className="mt-3 border-t border-(--cp-border) pt-3 text-sm text-(--cp-muted)">
+          // note saved
+        </p>
+      )}
     </article>
   );
 }

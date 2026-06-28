@@ -21,6 +21,7 @@ type RoutineBlockProps = {
   getHabitWeeklyTargetLabel: (habit: Habit) => string | null;
   onToggleHabit: (habitId: string) => void;
   onAdjustHabit: (habitId: string, delta: number) => void;
+  onOpenHabitNote: (habitId: string) => void;
 };
 
 export default function RoutineBlock({
@@ -30,9 +31,10 @@ export default function RoutineBlock({
   isHabitDone,
   getHabitCompletion,
   getHabitStreak,
+  getHabitWeeklyTargetLabel,
   onToggleHabit,
   onAdjustHabit,
-  getHabitWeeklyTargetLabel,
+  onOpenHabitNote,
 }: RoutineBlockProps) {
   const done = habits.filter((habit) => isHabitDone(habit.id)).length;
   const total = habits.length;
@@ -60,6 +62,7 @@ export default function RoutineBlock({
             weeklyTargetLabel={getHabitWeeklyTargetLabel(habit)}
             onToggle={() => onToggleHabit(habit.id)}
             onAdjust={(delta) => onAdjustHabit(habit.id, delta)}
+            onOpenNote={() => onOpenHabitNote(habit.id)}
           />
         ))}
       </div>

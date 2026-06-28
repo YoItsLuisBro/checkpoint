@@ -9,6 +9,7 @@ import WeekStrip from "../components/dashboard/WeekStrip";
 import RoutineBlock from "../components/dashboard/RoutineBlock";
 import DailyProgressBar from "../components/dashboard/DailyProgressBar";
 import EmptyState from "../components/ui/EmptyState";
+import HabitNotePanel from "../components/dashboard/HabitNotePanel";
 
 import { getReadableDate } from "../lib/dates";
 import { useCheckpointStore } from "../store/useCheckpointStore";
@@ -60,6 +61,7 @@ export default function DashboardPage({
 }: DashboardPageProps) {
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const selectedDateKey = toDateKey(selectedDate);
+  const [noteHabitId, setNoteHabitId] = useState<string | null>(null);
 
   const habits = useCheckpointStore((state) => state.habits);
   const completions = useCheckpointStore((state) => state.completions);
@@ -68,27 +70,9 @@ export default function DashboardPage({
   const adjustHabitValue = useCheckpointStore(
     (state) => state.adjustHabitValue,
   );
+  const setHabitNote = useCheckpointStore((state) => state.setHabitNote);
 
   const dueHabits = getDueHabits(habits, selectedDate);
-
-  console.log(
-    "ALL HABITS:",
-    habits.map((habit) => ({
-      name: habit.name,
-      category: habit.category,
-      schedule: habit.schedule,
-      archivedAt: habit.archivedAt,
-    })),
-  );
-
-  console.log(
-    "DUE HABITS:",
-    dueHabits.map((habit) => ({
-      name: habit.name,
-      category: habit.category,
-      schedule: habit.schedule,
-    })),
-  );
 
   const isHabitDoneForDate = (habitId: string, dateKey: string) => {
     return completions.some(
@@ -127,6 +111,14 @@ export default function DashboardPage({
     );
   };
 
+  const selectedNoteHabit = noteHabitId
+    ? habits.find((habit) => habit.id === noteHabitId)
+    : undefined;
+
+  const selectedNoteCompletion = selectedNoteHabit
+    ? getHabitCompletion(selectedNoteHabit.id)
+    : undefined;
+
   const getDayPercent = (dateKey: string) => {
     return getDayProgressPercent(habits, completions, dateKey).percent;
   };
@@ -160,11 +152,11 @@ export default function DashboardPage({
     const weeklyProgress = getWeeklyTargetProgress(
       habit,
       completions,
-      selectedDate
+      selectedDate,
     );
 
-    return `${weeklyProgress.completed}/${weeklyProgress.target}`
-  }
+    return `${weeklyProgress.completed}/${weeklyProgress.target}`;
+  };
 
   const groupedHabits: Record<HabitCategory, typeof habits> = {
     morning: [],
@@ -225,6 +217,18 @@ export default function DashboardPage({
         }
       />
 
+      {selectedNoteHabit && (
+        <HabitNotePanel
+          habit={selectedNoteHabit}
+          completion={selectedNoteCompletion}
+          dateLabel={getReadableDate(selectedDate)}
+          onSave={(note) =>
+            setHabitNote(selectedNoteHabit.id, selectedDateKey, note)
+          }
+          onClose={() => setNoteHabitId(null)}
+        />
+      )}
+
       <section className="mt-8 flex-1 space-y-5">
         {dueHabits.length === 0 ? (
           <EmptyState
@@ -264,6 +268,7 @@ export default function DashboardPage({
                   onAdjustHabit={(habitId, delta) =>
                     adjustHabitValue(habitId, selectedDateKey, delta)
                   }
+                  onOpenHabitNote={(habitId) => setNoteHabitId(habitId)}
                 />
               );
             })

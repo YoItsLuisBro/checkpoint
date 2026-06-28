@@ -374,6 +374,44 @@ export const useCheckpointStore = create<CheckpointState>()(
         get().setHabitValue(habitId, date, currentValue + delta);
       },
 
+      setHabitNote: (habitId, date, note) => {
+        const cleanNote = note.trim();
+        const exiting = get().getCompletion(habitId, date);
+
+        if (exiting) {
+          set((state) => ({
+            completions: state.completions.map((completion) =>
+              completion.id === exiting.id
+                ? {
+                    ...completion,
+                    note: cleanNote || undefined,
+                  }
+                : completion,
+            ),
+          }));
+
+          return;
+        }
+
+        if (!cleanNote) {
+          return;
+        }
+
+        const newCompletion: HabitCompletion = {
+          id: createId(),
+          habitId,
+          date,
+          value: 0,
+          completed: false,
+          completedAt: new Date().toISOString(),
+          note: cleanNote,
+        };
+
+        set((state) => ({
+          completions: [...state.completions, newCompletion],
+        }));
+      },
+
       toggleHabit: (habitId, date) => {
         const existing = get().getCompletion(habitId, date);
         const currentCompleted = existing?.completed ?? false;
