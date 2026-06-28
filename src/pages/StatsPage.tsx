@@ -13,6 +13,7 @@ import { Flame, Shield, Activity, CheckCircle2 } from "lucide-react";
 import TerminalShell from "../components/layout/TerminalShell";
 import TopNav, { type AppView } from "../components/layout/TopNav";
 import MonthlyHeatmap from "../components/stats/MonthlyHeatMap";
+import YearHeatmap from "../components/stats/YearHeatmap";
 import WeeklyReport from "../components/stats/WeeklyReport";
 import EmptyState from "../components/ui/EmptyState";
 
@@ -36,6 +37,7 @@ export default function StatsPage({
 }: StatsPageProps) {
   const today = useMemo(() => new Date(), []);
   const [selectedMonth, setSelectedMonth] = useState(() => new Date());
+  const [selectedYear, setSelectedYear] = useState(() => new Date());
 
   const habits = useCheckpointStore((state) => state.habits);
   const completions = useCheckpointStore((state) => state.completions);
@@ -208,6 +210,24 @@ export default function StatsPage({
           accent="text-[var(--cp-accent)]"
         />
       </section>
+
+      <YearHeatmap
+        selectedYear={selectedYear}
+        habits={activeHabits}
+        completions={completions}
+        shieldUses={shieldUses}
+        goalPercentage={settings.dailyGoalPercentage}
+        onPreviousYear={() =>
+          setSelectedYear(
+            (current) => new Date(current.getFullYear() - 1, 0, 1),
+          )
+        }
+        onNextYear={() =>
+          setSelectedYear(
+            (current) => new Date(current.getFullYear() + 1, 0, 1),
+          )
+        }
+      />
 
       <MonthlyHeatmap
         selectedMonth={selectedMonth}
