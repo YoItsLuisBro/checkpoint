@@ -8,6 +8,7 @@ import TerminalHeader from "../components/dashboard/TerminalHeader";
 import WeekStrip from "../components/dashboard/WeekStrip";
 import RoutineBlock from "../components/dashboard/RoutineBlock";
 import DailyProgressBar from "../components/dashboard/DailyProgressBar";
+import EmptyState from "../components/ui/EmptyState";
 
 import { getReadableDate } from "../lib/dates";
 import { useCheckpointStore } from "../store/useCheckpointStore";
@@ -167,25 +168,46 @@ export default function DashboardPage({
       />
 
       <section className="mt-8 flex-1 space-y-5">
-        {Object.entries(groupedHabits).map(([category, categoryHabits]) => {
-          const typedCategory = category as HabitCategory;
+        {dueHabits.length === 0 ? (
+          <EmptyState
+            command="$ habits --due"
+            title="no habits scheduled"
+            message="nothing is due on this date. rest, backfill another day, or create a new checkpoint."
+            action={
+              <button
+                type="button"
+                onClick={() => onChangeView("habits")}
+                className="border border-(--cp-accent) bg-(--cp-accent) px-4 py-3 text-sm font-bold text-(--cp-accent-contrast)"
+              >
+                open habit editor
+              </button>
+            }
+          />
+        ) : (
+          Object.entries(groupedHabits)
+            .filter(([, categoryHabits]) => categoryHabits.length > 0)
+            .map(([category, categoryHabits]) => {
+              const typedCategory = category as HabitCategory;
 
-          return (
-            <RoutineBlock
-              key={typedCategory}
-              category={typedCategory}
-              config={categoryConfig[typedCategory]}
-              habits={categoryHabits}
-              isHabitDone={isHabitDone}
-              getHabitCompletion={getHabitCompletion}
-              getHabitStreak={getHabitStreak}
-              onToggleHabit={(habitId) => toggleHabit(habitId, selectedDateKey)}
-              onAdjustHabit={(habitId, delta) =>
-                adjustHabitValue(habitId, selectedDateKey, delta)
-              }
-            />
-          );
-        })}
+              return (
+                <RoutineBlock
+                  key={typedCategory}
+                  category={typedCategory}
+                  config={categoryConfig[typedCategory]}
+                  habits={categoryHabits}
+                  isHabitDone={isHabitDone}
+                  getHabitCompletion={getHabitCompletion}
+                  getHabitStreak={getHabitStreak}
+                  onToggleHabit={(habitId) =>
+                    toggleHabit(habitId, selectedDateKey)
+                  }
+                  onAdjustHabit={(habitId, delta) =>
+                    adjustHabitValue(habitId, selectedDateKey, delta)
+                  }
+                />
+              );
+            })
+        )}
       </section>
 
       <DailyProgressBar

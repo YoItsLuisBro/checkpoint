@@ -14,6 +14,7 @@ import TerminalShell from "../components/layout/TerminalShell";
 import TopNav, { type AppView } from "../components/layout/TopNav";
 import MonthlyHeatmap from "../components/stats/MonthlyHeatMap";
 import WeeklyReport from "../components/stats/WeeklyReport";
+import EmptyState from "../components/ui/EmptyState";
 
 import { useCheckpointStore } from "../store/useCheckpointStore";
 import {
@@ -143,6 +144,25 @@ export default function StatsPage({
         </p>
       </header>
 
+      {activeHabits.length === 0 && (
+        <div className="mt-8">
+          <EmptyState
+            command="$ stats"
+            title="no active habits"
+            message="stats need active habits before CHECKPOINT can generate reports."
+            action={
+              <button
+                type="button"
+                onClick={() => onChangeView("habits")}
+                className="border border-(--cp-accent) bg-(--cp-accent) px-4 py-3 text-sm font-bold text-(--cp-accent-contrast)"
+              >
+                open habit editor
+              </button>
+            }
+          />
+        </div>
+      )}
+
       <section className="mt-8 grid grid-cols-2 gap-3">
         <StatCard
           icon={<Flame size={18} />}
@@ -249,7 +269,11 @@ export default function StatsPage({
         </div>
 
         {stats.habitStats.length === 0 ? (
-          <p className="text-(--cp-muted)">// no active habits found</p>
+          <EmptyState
+            command="$ habits --stats"
+            title="no habit stats"
+            message="complete a habit to start generating per-habit streak data."
+          />
         ) : (
           <div className="space-y-3">
             {stats.habitStats.map(

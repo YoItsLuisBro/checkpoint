@@ -6,6 +6,7 @@ import {
   startOfMonth,
 } from "date-fns";
 
+import EmptyState from "../ui/EmptyState";
 import type { Habit, HabitCompletion } from "../../types/checkpoint";
 import { getDayProgressPercent, toDateKey } from "../../lib/streaks";
 
@@ -146,10 +147,7 @@ export default function MonthlyHeatmap({
 
       <div className="grid grid-cols-7 gap-2">
         {weekdayLabels.map((label) => (
-          <div
-            key={label}
-            className="text-center text-xs text-(--cp-muted)"
-          >
+          <div key={label} className="text-center text-xs text-(--cp-muted)">
             {label}
           </div>
         ))}
@@ -174,11 +172,21 @@ export default function MonthlyHeatmap({
         })}
       </div>
 
-      <div className="mt-5 grid grid-cols-3 gap-3">
-        <MiniStat label="avg" value={`${average}%`} />
-        <MiniStat label="goal days" value={String(goalDays)} />
-        <MiniStat label="perfect" value={String(perfectDays)} />
-      </div>
+      {activeDays.length === 0 ? (
+        <div className="mt-5">
+          <EmptyState
+            command="$ heatmap --month"
+            title="no scheduled habit data"
+            message="this month has no due habits yet. add habits, adjust schedules, or navigate to a month with logs."
+          />
+        </div>
+      ) : (
+        <div className="mt-5 grid grid-cols-3 gap-3">
+          <MiniStat label="avg" value={`${average}%`} />
+          <MiniStat label="goal days" value={String(goalDays)} />
+          <MiniStat label="perfect" value={String(perfectDays)} />
+        </div>
+      )}
 
       <div className="mt-4 flex items-center gap-2 text-xs text-(--cp-muted)">
         <span>less</span>

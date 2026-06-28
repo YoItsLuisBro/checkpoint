@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 
 import TerminalShell from "../components/layout/TerminalShell";
+import EmptyState from "../components/ui/EmptyState";
 import TopNav, { type AppView } from "../components/layout/TopNav";
 import { useCheckpointStore } from "../store/useCheckpointStore";
 import {
@@ -499,9 +500,7 @@ export default function HabitsPage({
                   <div>
                     <p
                       className={
-                        selected
-                          ? "text-(--cp-accent)"
-                          : "text-(--cp-text)"
+                        selected ? "text-(--cp-accent)" : "text-(--cp-text)"
                       }
                     >
                       {template.label}
@@ -560,92 +559,116 @@ export default function HabitsPage({
       </section>
 
       <section className="mt-8 flex-1 space-y-6">
-        {categoryOptions.map((category) => {
-          const habitsForCategory = groupedHabits[category];
+        {activeHabits.length === 0 ? (
+          <EmptyState
+            command="$ habits --active"
+            title="no active habits"
+            message="your routine list is empty. add a custom habit or apply a template to start logging."
+            action={
+              <button
+                type="button"
+                onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+                className="border border-(--cp-accent) bg-(--cp-accent) px-4 py-3 text-sm font-bold text-(--cp-accent-contrast)"
+              >
+                create first habit
+              </button>
+            }
+          />
+        ) : (
+          categoryOptions.map((category) => {
+            const habitsForCategory = groupedHabits[category];
 
-          return (
-            <div key={category} className="border-b border-(--cp-border) pb-5">
-              <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-(--cp-accent)">
-                  {categoryLabels[category]}
-                </h2>
+            return (
+              <div
+                key={category}
+                className="border-b border-(--cp-border) pb-5"
+              >
+                <div className="mb-3 flex items-center justify-between">
+                  <h2 className="text-2xl font-bold text-(--cp-accent)">
+                    {categoryLabels[category]}
+                  </h2>
 
-                <span className="text-(--cp-muted)">
-                  [{habitsForCategory.length}]
-                </span>
-              </div>
-
-              {habitsForCategory.length === 0 ? (
-                <p className="text-(--cp-muted)">// no habits assigned</p>
-              ) : (
-                <div className="space-y-3">
-                  {habitsForCategory.map((habit) => (
-                    <article key={habit.id} className="cp-panel p-3">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="truncate text-xl text-(--cp-text)">
-                            <span className="mr-2 text-(--cp-muted)">
-                              {habit.icon}
-                            </span>
-                            {habit.name}
-                          </p>
-
-                          <p className="mt-1 text-sm text-(--cp-muted)">
-                            mode: {habit.mode}
-                            {habit.target ? ` · target: ${habit.target}` : ""}
-                            {habit.unit ? ` ${habit.unit}` : ""}
-                          </p>
-
-                          <p className="mt-1 text-sm text-(--cp-muted)">
-                            schedule: {getScheduleLabel(habit.schedule)}
-                          </p>
-                        </div>
-
-                        <div className="grid shrink-0 grid-cols-2 gap-2">
-                          <button
-                            type="button"
-                            onClick={() => moveHabit(habit.id, "up")}
-                            className="border border-(--cp-border) p-2 text-(--cp-muted)"
-                            aria-label={`Move ${habit.name} up`}
-                          >
-                            <ArrowUp size={16} />
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => moveHabit(habit.id, "down")}
-                            className="border border-(--cp-border) p-2 text-(--cp-muted)"
-                            aria-label={`Move ${habit.name} down`}
-                          >
-                            <ArrowDown size={16} />
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => startEditing(habit)}
-                            className="border border-(--cp-border) p-2 text-(--cp-text)"
-                            aria-label={`Edit ${habit.name}`}
-                          >
-                            <Pencil size={16} />
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => handleArchiveHabit(habit)}
-                            className="border border-(--cp-border) p-2 text-(--cp-muted)"
-                            aria-label={`Archive ${habit.name}`}
-                          >
-                            <Archive size={16} />
-                          </button>
-                        </div>
-                      </div>
-                    </article>
-                  ))}
+                  <span className="text-(--cp-muted)">
+                    [{habitsForCategory.length}]
+                  </span>
                 </div>
-              )}
-            </div>
-          );
-        })}
+
+                {habitsForCategory.length === 0 ? (
+                  <EmptyState
+                    command={`$ habits --routine ${category}`}
+                    title={`no ${categoryLabels[category].toLowerCase()} habits`}
+                    message="this routine has no active checkpoints yet."
+                  />
+                ) : (
+                  <div className="space-y-3">
+                    {habitsForCategory.map((habit) => (
+                      <article key={habit.id} className="cp-panel p-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="truncate text-xl text-(--cp-text)">
+                              <span className="mr-2 text-(--cp-muted)">
+                                {habit.icon}
+                              </span>
+                              {habit.name}
+                            </p>
+
+                            <p className="mt-1 text-sm text-(--cp-muted)">
+                              mode: {habit.mode}
+                              {habit.target ? ` · target: ${habit.target}` : ""}
+                              {habit.unit ? ` ${habit.unit}` : ""}
+                            </p>
+
+                            <p className="mt-1 text-sm text-(--cp-muted)">
+                              schedule: {getScheduleLabel(habit.schedule)}
+                            </p>
+                          </div>
+
+                          <div className="grid shrink-0 grid-cols-2 gap-2">
+                            <button
+                              type="button"
+                              onClick={() => moveHabit(habit.id, "up")}
+                              className="border border-(--cp-border) p-2 text-(--cp-muted)"
+                              aria-label={`Move ${habit.name} up`}
+                            >
+                              <ArrowUp size={16} />
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => moveHabit(habit.id, "down")}
+                              className="border border-(--cp-border) p-2 text-(--cp-muted)"
+                              aria-label={`Move ${habit.name} down`}
+                            >
+                              <ArrowDown size={16} />
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => startEditing(habit)}
+                              className="border border-(--cp-border) p-2 text-(--cp-text)"
+                              aria-label={`Edit ${habit.name}`}
+                            >
+                              <Pencil size={16} />
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleArchiveHabit(habit)}
+                              className="border border-(--cp-border) p-2 text-(--cp-muted)"
+                              aria-label={`Archive ${habit.name}`}
+                            >
+                              <Archive size={16} />
+                            </button>
+                          </div>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })
+        )}
       </section>
 
       <section className="mt-8 border-b border-(--cp-border) pb-6">
@@ -656,7 +679,11 @@ export default function HabitsPage({
         </div>
 
         {archivedHabits.length === 0 ? (
-          <p className="text-(--cp-muted)">// no archived habits</p>
+          <EmptyState
+            command="$ habits --archived"
+            title="archive is clean"
+            message="archived habits will appear here when you remove them from your active routine."
+          />
         ) : (
           <div className="space-y-3">
             {archivedHabits.map((habit) => (

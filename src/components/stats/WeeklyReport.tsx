@@ -1,5 +1,7 @@
 import { eachDayOfInterval, endOfWeek, format, startOfWeek } from "date-fns";
 
+import EmptyState from "../ui/EmptyState";
+
 import type {
   Habit,
   HabitCategory,
@@ -59,6 +61,18 @@ export default function WeeklyReport({
   });
 
   const activeDays = dayProgress.filter((day) => day.total > 0);
+
+  if (activeDays.length === 0) {
+    return (
+      <section className="mt-8 border-b border-(--cp-border) pb-6">
+        <EmptyState
+          command="$ report --week"
+          title="no weekly data"
+          message="no habits are scheduled this week. add a habit or change your schedules to generate a report."
+        />
+      </section>
+    );
+  }
 
   const weeklyAverage =
     activeDays.length === 0
