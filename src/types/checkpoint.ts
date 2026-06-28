@@ -12,7 +12,7 @@ export type HabitScheduleType =
 
 export type HabitSchedule = {
   type: HabitScheduleType;
-  days?: number[]; // 0 = Sunday, 1 = Monday, ... 6 = Saturday
+  days?: number[];
 };
 
 export type Habit = {
@@ -44,6 +44,7 @@ export type AppSettings = {
   machineName: string;
   dailyGoalPercentage: number;
   theme: AppTheme;
+  hasCompletedOnboarding: boolean;
 };
 
 export type HabitInput = {
@@ -62,6 +63,15 @@ export type SettingsInput = {
   machineName: string;
   dailyGoalPercentage: number;
   theme: AppTheme;
+};
+
+export type OnboardingInput = {
+  username: string;
+  planLabel: string;
+  machineName: string;
+  dailyGoalPercentage: number;
+  theme: AppTheme;
+  templateId: string;
 };
 
 export type CheckpointBackup = {
@@ -83,6 +93,9 @@ export type CheckpointState = {
   restoreHabit: (habitId: string) => void;
   deleteHabit: (habitId: string) => void;
   moveHabit: (habitId: string, direction: "up" | "down") => void;
+
+  completeOnboarding: (input: OnboardingInput) => void;
+  finishOnboarding: () => void;
 
   updateSettings: (input: SettingsInput) => void;
   resetAppData: () => void;

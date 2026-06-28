@@ -1,16 +1,20 @@
+import { parseISO } from "date-fns";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+
+import { getDueHabits, normalizeHabitSchedule } from "../lib/schedules";
+import { onboardingTemplates } from "../lib/onboardingTemplates";
+import { seedHabits } from "../lib/seed";
+
 import type {
   CheckpointBackup,
   CheckpointState,
   Habit,
   HabitCompletion,
   HabitInput,
+  OnboardingInput,
   SettingsInput,
 } from "../types/checkpoint";
-import { seedHabits } from "../lib/seed";
-import { parseISO } from "date-fns";
-import { getDueHabits, normalizeHabitSchedule } from "../lib/schedules";
 
 function createId() {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -30,12 +34,32 @@ function isHabitCompletedByValue(habit: Habit | undefined, value: number) {
   return value >= getHabitTarget(habit);
 }
 
+function buildHabitFromInput(input: HabitInput, order: number): Habit {
+  return {
+    id: createId(),
+    name: input.name.trim(),
+    icon: input.icon.trim() || "□",
+    category: input.category,
+    mode: input.mode,
+    target: input.mode === "checkbox" ? undefined : (input.target ?? 1),
+    unit:
+      input.mode === "timer"
+        ? input.unit?.trim() || "min"
+        : input.unit?.trim() || undefined,
+    schedule: normalizeHabitSchedule(input.schedule),
+    order,
+    createdAt: new Date().toISOString(),
+    archivedAt: null,
+  };
+}
+
 const defaultSettings = {
   username: "user",
-  planLabel: "pro",
+  planLabel: "local",
   machineName: "checkpoint",
   dailyGoalPercentage: 60,
   theme: "terminal" as const,
+  hasCompletedOnboarding: false,
 };
 
 const defaultState = {
@@ -53,22 +77,7 @@ export const useCheckpointStore = create<CheckpointState>()(
         const nextOrder =
           Math.max(0, ...get().habits.map((habit) => habit.order)) + 1;
 
-        const newHabit: Habit = {
-          id: createId(),
-          name: input.name.trim(),
-          icon: input.icon.trim() || "□",
-          category: input.category,
-          mode: input.mode,
-          target: input.mode === "checkbox" ? undefined : (input.target ?? 1),
-          unit:
-            input.mode === "timer"
-              ? input.unit?.trim() || "min"
-              : input.unit?.trim() || undefined,
-          order: nextOrder,
-          createdAt: new Date().toISOString(),
-          archivedAt: null,
-          schedule: normalizeHabitSchedule(input.schedule),
-        };
+        const newHabit = buildHabitFromInput(input, nextOrder);
 
         set((state) => ({
           habits: [...state.habits, newHabit],
@@ -209,9 +218,46 @@ export const useCheckpointStore = create<CheckpointState>()(
         });
       },
 
-      updateSettings: (input: SettingsInput) => {
+      completeOnboarding: (input: OnboardingInput) => {
+        const selectedTemplate =
+          onboardingTemplates.find(
+            (template) => template.id === input.templateId,
+          ) ?? onboardingTemplates[0];
+
+        const nextHabits = selectedTemplate.habits.map((habitInput, index) =>
+          buildHabitFromInput(habitInput, index + 1),
+        );
+
         set(() => ({
+          habits: nextHabits,
+          completions: [],
           settings: {
+            username: input.username.trim() || "user",
+            planLabel: input.planLabel.trim() || "local",
+            machineName: input.machineName.trim() || "checkpoint",
+            dailyGoalPercentage: Math.min(
+              100,
+              Math.max(0, input.dailyGoalPercentage),
+            ),
+            theme: input.theme,
+            hasCompletedOnboarding: true,
+          },
+        }));
+      },
+
+      finishOnboarding: () => {
+        set((state) => ({
+          settings: {
+            ...state.settings,
+            hasCompletedOnboarding: true,
+          },
+        }));
+      },
+
+      updateSettings: (input: SettingsInput) => {
+        set((state) => ({
+          settings: {
+            ...state.settings,
             username: input.username.trim() || "user",
             planLabel: input.planLabel.trim() || "local",
             machineName: input.machineName.trim() || "checkpoint",
@@ -234,9 +280,17 @@ export const useCheckpointStore = create<CheckpointState>()(
 
       importBackup: (backup: CheckpointBackup) => {
         set(() => ({
-          habits: backup.habits,
+          habits: backup.habits.map((habit) => ({
+            ...habit,
+            schedule: normalizeHabitSchedule(habit.schedule),
+          })),
           completions: backup.completions,
-          settings: backup.settings,
+          settings: {
+            ...defaultSettings,
+            ...backup.settings,
+            hasCompletedOnboarding:
+              backup.settings.hasCompletedOnboarding ?? true,
+          },
         }));
       },
 
@@ -334,6 +388,8 @@ export const useCheckpointStore = create<CheckpointState>()(
           settings: {
             ...current.settings,
             ...persistedState?.settings,
+            hasCompletedOnboarding:
+              persistedState?.settings?.hasCompletedOnboarding ?? false,
           },
         };
       },
