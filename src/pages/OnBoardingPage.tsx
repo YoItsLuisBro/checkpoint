@@ -77,18 +77,14 @@ export default function OnboardingPage() {
           </p>
           <p>
             <span className="text-(--cp-warn)">[init]</span>{" "}
-            <span className="text-(--cp-text)">
-              waiting for user config
-            </span>
+            <span className="text-(--cp-text)">waiting for user config</span>
           </p>
         </div>
       </section>
 
       {existingHabits.length > 0 && (
         <section className="mt-6 border border-(--cp-border) bg-(--cp-panel) p-4">
-          <h2 className="text-xl text-(--cp-warn)">
-            $ existing data found
-          </h2>
+          <h2 className="text-xl text-(--cp-warn)">$ existing data found</h2>
 
           <p className="mt-2 text-sm text-(--cp-muted)">
             You already have local habits saved. You can keep them and skip the
@@ -129,36 +125,12 @@ export default function OnboardingPage() {
               />
             </label>
 
-            <div className="grid grid-cols-2 gap-3">
-              <label className="block space-y-2">
-                <span className="text-(--cp-muted)">plan</span>
-                <input
-                  value={form.planLabel}
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      planLabel: event.target.value,
-                    }))
-                  }
-                  className="cp-input"
-                  placeholder="local"
-                />
-              </label>
-
-              <label className="block space-y-2">
-                <span className="text-(--cp-muted)">machine</span>
-                <input
-                  value={form.machineName}
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      machineName: event.target.value,
-                    }))
-                  }
-                  className="cp-input"
-                  placeholder="checkpoint"
-                />
-              </label>
+            <div className="border border-(--cp-border) bg-(--cp-surface) px-3 py-3 text-sm">
+              <p className="text-(--cp-muted)">app name</p>
+              <p className="mt-1 text-lg text-(--cp-text)">CHECKPOINT</p>
+              <p className="mt-1 text-xs text-(--cp-muted)">
+                // fixed system identity
+              </p>
             </div>
           </div>
         </section>
@@ -194,9 +166,7 @@ export default function OnboardingPage() {
                     <div>
                       <p
                         className={
-                          selected
-                            ? "text-(--cp-accent)"
-                            : "text-(--cp-text)"
+                          selected ? "text-(--cp-accent)" : "text-(--cp-text)"
                         }
                       >
                         {template.label}
@@ -208,10 +178,7 @@ export default function OnboardingPage() {
                     </div>
 
                     {selected && (
-                      <CheckCircle2
-                        size={18}
-                        className="text-(--cp-accent)"
-                      />
+                      <CheckCircle2 size={18} className="text-(--cp-accent)" />
                     )}
                   </div>
 
@@ -229,9 +196,7 @@ export default function OnboardingPage() {
             <div className="mt-3 space-y-2">
               {selectedTemplate.habits.map((habit) => (
                 <p key={`${habit.category}-${habit.name}`} className="text-sm">
-                  <span className="text-(--cp-muted)">
-                    [{habit.category}]
-                  </span>{" "}
+                  <span className="text-(--cp-muted)">[{habit.category}]</span>{" "}
                   <span className="text-(--cp-text)">
                     {habit.icon} {habit.name}
                   </span>

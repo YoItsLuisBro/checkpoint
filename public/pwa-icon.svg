@@ -1,7 +1,0 @@
-<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-  <rect width="512" height="512" fill="#080b10"></rect>
-  <rect x="48" y="48" width="416" height="416" fill="#0b0f17" stroke="#34d399" stroke-width="24"></rect>
-  <rect x="86" y="86" width="340" height="340" fill="none" stroke="#1f2937" stroke-width="8"></rect>
-  <path d="M142 268L224 350L376 166" fill="none" stroke="#34d399" stroke-width="44" stroke-linecap="square" stroke-linejoin="miter"></path>
-  <text x="256" y="438" text-anchor="middle" font-family="monospace" font-size="44" font-weight="700" fill="#e5e7eb">CHECKPOINT</text>
-</svg>

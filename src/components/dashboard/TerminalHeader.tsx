@@ -1,27 +1,26 @@
-import type { AppSettings } from "../../types/checkpoint";
+import { getReadableDate } from "../../lib/dates";
+import { useCheckpointStore } from "../../store/useCheckpointStore";
 
-type TerminalHeaderProps = {
-  settings: AppSettings;
-};
+export default function TerminalHeader() {
+  const username = useCheckpointStore(
+    (state) => state.settings.username || "user",
+  );
 
-export default function TerminalHeader({ settings }: TerminalHeaderProps) {
   return (
-    <header className="space-y-2">
-      <h1 className="text-[22px] leading-none tracking-tight">
-        <span className="text-(--cp-accent)">{settings.username}</span>
-        <span className="text-(--cp-warn)">[{settings.planLabel}]</span>
-        <span className="text-(--cp-info)">
-          @{settings.machineName}
-        </span>{" "}
-        <span className="text-(--cp-accent)">#</span>{" "}
-        <span className="text-(--cp-text)">daily</span>
-      </h1>
+    <header>
+      <p className="text-sm text-(--cp-muted)">{username}@checkpoint # daily</p>
 
-      <p className="text-lg leading-tight text-(--cp-muted)">
-        // technically, reading this counts as screen time.
-        <br />
-        make it count.
-      </p>
+      <div className="mt-3 flex items-end justify-between gap-3">
+        <div>
+          <h1 className="text-4xl font-bold leading-none tracking-tight text-(--cp-text)">
+            CHECKPOINT
+          </h1>
+
+          <p className="mt-2 text-sm text-(--cp-muted)">
+            // {getReadableDate()}
+          </p>
+        </div>
+      </div>
     </header>
   );
 }
