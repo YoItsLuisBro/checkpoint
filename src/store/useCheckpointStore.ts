@@ -262,12 +262,20 @@ export const useCheckpointStore = create<CheckpointState>()(
           return;
         }
 
-        const nextOrder =
-          Math.max(0, ...get().habits.map((habit) => habit.order)) + 1;
+        const activeHabits = get().habits.filter((habit) => !habit.archivedAt);
+
+        const startingOrder =
+          Math.max(0, ...activeHabits.map((habit) => habit.order)) + 1;
 
         const templateHabits = selectedTemplate.habits.map(
           (habitInput, index) =>
-            buildHabitFromInput(habitInput, nextOrder + index),
+            buildHabitFromInput(
+              {
+                ...habitInput,
+                schedule: normalizeHabitSchedule(habitInput.schedule),
+              },
+              startingOrder + index,
+            ),
         );
 
         set((state) => ({

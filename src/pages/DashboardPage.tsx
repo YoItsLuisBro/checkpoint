@@ -70,6 +70,25 @@ export default function DashboardPage({
 
   const dueHabits = getDueHabits(habits, selectedDate);
 
+  console.log(
+    "ALL HABITS:",
+    habits.map((habit) => ({
+      name: habit.name,
+      category: habit.category,
+      schedule: habit.schedule,
+      archivedAt: habit.archivedAt,
+    })),
+  );
+
+  console.log(
+    "DUE HABITS:",
+    dueHabits.map((habit) => ({
+      name: habit.name,
+      category: habit.category,
+      schedule: habit.schedule,
+    })),
+  );
+
   const isHabitDoneForDate = (habitId: string, dateKey: string) => {
     return completions.some(
       (completion) =>
@@ -116,16 +135,23 @@ export default function DashboardPage({
   };
 
   const groupedHabits: Record<HabitCategory, typeof habits> = {
-    morning: dueHabits
-      .filter((habit) => habit.category === "morning")
-      .sort((a, b) => a.order - b.order),
-    day: dueHabits
-      .filter((habit) => habit.category === "day")
-      .sort((a, b) => a.order - b.order),
-    night: dueHabits
-      .filter((habit) => habit.category === "night")
-      .sort((a, b) => a.order - b.order),
+    morning: [],
+    day: [],
+    night: [],
   };
+
+  dueHabits
+    .slice()
+    .sort((a, b) => a.order - b.order)
+    .forEach((habit) => {
+      if (
+        habit.category === "morning" ||
+        habit.category === "day" ||
+        habit.category === "night"
+      ) {
+        groupedHabits[habit.category].push(habit);
+      }
+    });
 
   return (
     <TerminalShell>
@@ -184,10 +210,11 @@ export default function DashboardPage({
             }
           />
         ) : (
-          Object.entries(groupedHabits)
-            .filter(([, categoryHabits]) => categoryHabits.length > 0)
-            .map(([category, categoryHabits]) => {
-              const typedCategory = category as HabitCategory;
+          (["morning", "day", "night"] as HabitCategory[])
+            .filter((category) => groupedHabits[category].length > 0)
+            .map((category) => {
+              const typedCategory = category;
+              const categoryHabits = groupedHabits[category];
 
               return (
                 <RoutineBlock

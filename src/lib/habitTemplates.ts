@@ -100,7 +100,10 @@ export const habitTemplates: HabitTemplate[] = [
         icon: "⌁",
         category: "day",
         mode: "checkbox",
-        schedule: { type: "specific-days", days: [1, 3, 5] },
+        schedule: {
+          type: "specific-days",
+          days: [1, 3, 5],
+        },
       },
       {
         name: "2L water",
@@ -109,21 +112,30 @@ export const habitTemplates: HabitTemplate[] = [
         mode: "counter",
         target: 2,
         unit: "L",
-        schedule: { type: "daily", days: [] },
+        schedule: {
+          type: "daily",
+          days: [],
+        },
       },
       {
         name: "No junk",
         icon: "✦",
         category: "day",
         mode: "checkbox",
-        schedule: { type: "daily", days: [] },
+        schedule: {
+          type: "daily",
+          days: [],
+        },
       },
       {
         name: "Sleep routine",
         icon: "☾",
         category: "night",
         mode: "checkbox",
-        schedule: { type: "daily", days: [] },
+        schedule: {
+          type: "daily",
+          days: [],
+        },
       },
     ],
   },
