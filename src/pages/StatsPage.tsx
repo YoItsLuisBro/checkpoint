@@ -13,7 +13,7 @@ import { Flame, Shield, Activity, CheckCircle2 } from "lucide-react";
 import TerminalShell from "../components/layout/TerminalShell";
 import TopNav, { type AppView } from "../components/layout/TopNav";
 import MonthlyHeatmap from "../components/stats/MonthlyHeatMap";
-import YearHeatmap from "../components/stats/YearHeatmap";
+import YearHeatmap from "../components/stats/YearHeatMap";
 import WeeklyReport from "../components/stats/WeeklyReport";
 import EmptyState from "../components/ui/EmptyState";
 
