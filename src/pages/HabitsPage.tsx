@@ -29,6 +29,8 @@ import type {
   HabitScheduleType,
 } from "../types/checkpoint";
 
+import { habitTemplates, type HabitTemplate } from "../lib/habitTemplates";
+
 type HabitsPageProps = {
   activeView: AppView;
   onChangeView: (view: AppView) => void;
@@ -67,8 +69,15 @@ export default function HabitsPage({
   const restoreHabit = useCheckpointStore((state) => state.restoreHabit);
   const deleteHabit = useCheckpointStore((state) => state.deleteHabit);
   const moveHabit = useCheckpointStore((state) => state.moveHabit);
+  const applyHabitTemplate = useCheckpointStore(
+    (state) => state.applyHabitTemplate,
+  );
 
   const [form, setForm] = useState<HabitInput>(() => getEmptyForm());
+  const [selectedTemplateId, setSelectedTemplateId] = useState(
+    habitTemplates[0]?.id ?? "",
+  );
+  const [templateStatus, setTemplateStatus] = useState("");
   const [editingHabitId, setEditingHabitId] = useState<string | null>(null);
 
   const activeHabits = useMemo(() => {
@@ -90,6 +99,13 @@ export default function HabitsPage({
       night: activeHabits.filter((habit) => habit.category === "night"),
     };
   }, [activeHabits]);
+
+  const selectedTemplate = useMemo(() => {
+    return (
+      habitTemplates.find((template) => template.id === selectedTemplateId) ??
+      habitTemplates[0]
+    );
+  }, [selectedTemplateId]);
 
   const isEditing = Boolean(editingHabitId);
 
@@ -188,6 +204,19 @@ export default function HabitsPage({
     }
 
     deleteHabit(habit.id);
+  }
+
+  function handleApplyTemplate(template: HabitTemplate) {
+    const confirmed = window.confirm(
+      `Add "${template.label}"? This will append ${template.habits.length} habits to your current setup.`,
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    applyHabitTemplate(template.id);
+    setTemplateStatus(`template applied: ${template.label}`);
   }
 
   return (
@@ -434,6 +463,100 @@ export default function HabitsPage({
             {isEditing ? "save habit" : "add habit"}
           </button>
         </form>
+      </section>
+
+      <section className="cp-panel mt-8 p-4">
+        <div className="mb-4">
+          <h2 className="text-xl text-(--cp-accent)">$ templates</h2>
+          <p className="mt-1 text-sm text-(--cp-muted)">
+            // apply a routine pack without replacing current habits
+          </p>
+        </div>
+
+        {templateStatus && (
+          <div className="mb-4 border border-(--cp-accent) bg-(--cp-accent-soft) px-3 py-2 text-sm text-(--cp-accent)">
+            [ok] {templateStatus}
+          </div>
+        )}
+
+        <div className="space-y-3">
+          {habitTemplates.map((template) => {
+            const selected = selectedTemplateId === template.id;
+
+            return (
+              <button
+                key={template.id}
+                type="button"
+                onClick={() => setSelectedTemplateId(template.id)}
+                className={[
+                  "w-full border p-3 text-left transition",
+                  selected
+                    ? "border-(--cp-accent) bg-(--cp-accent-soft)"
+                    : "border-(--cp-border) bg-(--cp-panel)",
+                ].join(" ")}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p
+                      className={
+                        selected
+                          ? "text-(--cp-accent)"
+                          : "text-(--cp-text)"
+                      }
+                    >
+                      {template.label}
+                    </p>
+
+                    <p className="mt-1 text-xs text-(--cp-muted)">
+                      {template.command}
+                    </p>
+                  </div>
+
+                  <span className="text-sm text-(--cp-muted)">
+                    [{template.habits.length}]
+                  </span>
+                </div>
+
+                <p className="mt-3 text-sm text-(--cp-muted)">
+                  {template.description}
+                </p>
+              </button>
+            );
+          })}
+        </div>
+
+        {selectedTemplate && (
+          <div className="mt-5 borde border-(--cp-border) bg-(--cp-surface) p-3">
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-sm text-(--cp-muted)">preview</p>
+
+              <button
+                type="button"
+                onClick={() => handleApplyTemplate(selectedTemplate)}
+                className="border border-(--cp-accent) bg-(--cp-accent) px-3 py-2 text-sm font-bold text-(--cp-accent-contrast)"
+              >
+                apply
+              </button>
+            </div>
+
+            <div className="space-y-1">
+              {selectedTemplate.habits.map((habit) => (
+                <p key={`${habit.category}-${habit.name}`} className="text-sm">
+                  <span className="text-(--cp-muted)">[{habit.category}]</span>{" "}
+                  <span className="text-(--cp-text)">
+                    {habit.icon} {habit.name}
+                  </span>
+                  <span className="text-(--cp-muted)">
+                    {" "}
+                    · {habit.mode}
+                    {habit.target ? ` ${habit.target}` : ""}
+                    {habit.unit ? ` ${habit.unit}` : ""}
+                  </span>
+                </p>
+              ))}
+            </div>
+          </div>
+        )}
       </section>
 
       <section className="mt-8 flex-1 space-y-6">

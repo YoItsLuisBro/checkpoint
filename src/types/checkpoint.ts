@@ -96,6 +96,7 @@ export type CheckpointState = {
 
   completeOnboarding: (input: OnboardingInput) => void;
   finishOnboarding: () => void;
+  applyHabitTemplate: (templateId: string) => void;
 
   updateSettings: (input: SettingsInput) => void;
   resetAppData: () => void;

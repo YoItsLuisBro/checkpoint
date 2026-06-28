@@ -3,7 +3,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 import { getDueHabits, normalizeHabitSchedule } from "../lib/schedules";
-import { onboardingTemplates } from "../lib/onboardingTemplates";
+import { habitTemplates } from "../lib/habitTemplates";
 import { seedHabits } from "../lib/seed";
 
 import type {
@@ -220,9 +220,8 @@ export const useCheckpointStore = create<CheckpointState>()(
 
       completeOnboarding: (input: OnboardingInput) => {
         const selectedTemplate =
-          onboardingTemplates.find(
-            (template) => template.id === input.templateId,
-          ) ?? onboardingTemplates[0];
+          habitTemplates.find((template) => template.id === input.templateId) ??
+          habitTemplates[0];
 
         const nextHabits = selectedTemplate.habits.map((habitInput, index) =>
           buildHabitFromInput(habitInput, index + 1),
@@ -251,6 +250,28 @@ export const useCheckpointStore = create<CheckpointState>()(
             ...state.settings,
             hasCompletedOnboarding: true,
           },
+        }));
+      },
+
+      applyHabitTemplate: (templateId: string) => {
+        const selectedTemplate = habitTemplates.find(
+          (template) => template.id === templateId,
+        );
+
+        if (!selectedTemplate) {
+          return;
+        }
+
+        const nextOrder =
+          Math.max(0, ...get().habits.map((habit) => habit.order)) + 1;
+
+        const templateHabits = selectedTemplate.habits.map(
+          (habitInput, index) =>
+            buildHabitFromInput(habitInput, nextOrder + index),
+        );
+
+        set((state) => ({
+          habits: [...state.habits, ...templateHabits],
         }));
       },
 
